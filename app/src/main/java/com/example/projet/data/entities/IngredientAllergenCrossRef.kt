@@ -1,4 +1,4 @@
-package com.example.projet.entities
+package com.example.projet.data.entities
 
 import androidx.room.Entity
 
