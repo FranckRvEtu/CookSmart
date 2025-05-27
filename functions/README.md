@@ -20,6 +20,38 @@ Main search function that allows searching recipes with various filters.
 }
 ```
 
+### `searchRecipesByIngredients`
+
+Search and process recipes based on available ingredients. Returns recipes sorted by matching ingredients and possibility to make the recipe.
+
+**Parameters:**
+```typescript
+{
+  ingredients: string[];    // List of available ingredients
+  searchParams?: {         // Optional search parameters
+    title?: string;
+    maxTime?: number;
+    difficulty?: RECIPE_DIFFICULTY;
+    price?: RECIPE_PRICE;
+    withoutOven?: boolean;
+    limit?: number;
+  }
+}
+```
+
+**Returns ProcessedRecipe objects that extend Recipe with:**
+```typescript
+{
+  matchingIngredients: string[];      // List of ingredients you have
+  matchingIngredientsCount: number;   // Number of ingredients you have
+  canBeMadeWithIngredients: boolean;  // True if you have all needed ingredients
+}
+```
+
+The results are sorted by:
+1. Recipes that can be made with available ingredients first
+2. Number of matching ingredients (highest to lowest)
+
 ### `getEasyRecipes`
 
 Returns a list of easy-to-make recipes.
@@ -51,7 +83,7 @@ All functions return responses in the following format:
 ```typescript
 {
   success: boolean;
-  data?: Recipe[];  // Array of recipes if successful
+  data?: Recipe[] | ProcessedRecipe[];  // Array of recipes if successful
   error?: string;   // Error message if failed
   details?: string; // Detailed error information if available
 }
@@ -83,7 +115,7 @@ All functions include proper error handling and will return:
 
 All endpoints support CORS and can be accessed from the mobile app.
 
-## Usage Example
+## Usage Examples
 
 ```typescript
 // Example: Search for quick vegetarian recipes
@@ -96,6 +128,21 @@ const response = await fetch('your-firebase-url/searchMarmitonRecipes', {
     title: 'vegetarien',
     maxTime: 30,
     limit: 5
+  })
+});
+
+// Example: Search recipes based on available ingredients
+const response = await fetch('your-firebase-url/searchRecipesByIngredients', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    ingredients: ['tomato', 'pasta', 'olive oil'],
+    searchParams: {
+      maxTime: 30,  // Optional: additional search parameters
+      limit: 5
+    }
   })
 });
 
