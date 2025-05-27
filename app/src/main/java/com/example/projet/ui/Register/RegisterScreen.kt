@@ -36,10 +36,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Text
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.RadioButton
@@ -55,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.projet.ui.Login.LoginScreen
 
 // Progress indicator for registration steps
 @Composable
@@ -315,13 +321,14 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
     var passwordsMatch by remember { mutableStateOf(true) }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
-    
+    val password = registerData.value.password ?: ""
+
     val passwordRequirements = listOf(
-        registerData.value.password.length >= 8 to "Au moins 8 caractères",
-        registerData.value.password.any { it.isDigit() } to "Au moins un chiffre",
-        registerData.value.password.any { it.isUpperCase() } to "Au moins une majuscule",
-        registerData.value.password.any { it.isLowerCase() } to "Au moins une minuscule",
-        registerData.value.password.any { !it.isLetterOrDigit() } to "Au moins un caractère spécial"
+        (password.length >= 8) to "Au moins 8 caractères",
+        (password.any { it.isDigit() }) to "Au moins un chiffre",
+        (password.any { it.isUpperCase() }) to "Au moins une majuscule",
+        (password.any { it.isLowerCase() }) to "Au moins une minuscule",
+        (password.any { !it.isLetterOrDigit() }) to "Au moins un caractère spécial"
     )
 
     Column(
