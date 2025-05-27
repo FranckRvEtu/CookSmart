@@ -1,3 +1,4 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -45,13 +46,13 @@ dependencies {
     // Jetpack Compose
     implementation(libs.androidx.foundation.android)
     implementation(libs.androidx.material3.android)
-    implementation("androidx.compose.material3:material3:1.1.2")
     implementation("androidx.navigation:navigation-compose:2.7.0")
 
     // Room Database
     val room_version = "2.6.1"
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
+    implementation("androidx.compose.material:material-icons-extended")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
