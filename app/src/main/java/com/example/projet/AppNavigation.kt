@@ -11,6 +11,8 @@ import com.example.projet.ui.login.RegisterData
 import com.example.projet.ui.register.RegisterStep1Screen
 import com.example.projet.ui.register.RegisterStep2Screen
 import com.example.projet.ui.register.RegisterStep3Screen
+import com.example.project.ui.home.HomeScreen
+import com.example.projet.ui.profile.ProfileScreen
 
 @Composable
 fun AppNavigation() {
@@ -30,6 +32,12 @@ fun AppNavigation() {
         }
         composable("register_step3") {
             RegisterStep3Screen(navController = navController, registerData = registerData)
+        }
+        composable("homescreen") {
+            HomeScreen(navController = navController)
+        }
+        composable("profile") {
+            ProfileScreen(navController = navController)
         }
         // Ajoute ici d'autres écrans si besoin
     }

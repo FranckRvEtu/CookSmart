@@ -138,9 +138,9 @@ fun LoginScreen(navController: NavHostController) {
                         return@Button
                     }
                     // TODO: Implement login logic here
-                    // For now, simulate login failure
+                    // On redirige à l'écran d'acceuil sans vérif
                     errorMessage = "Email ou mot de passe incorrect"
-                    isLoading = false
+                    isLoading = true
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -152,6 +152,8 @@ fun LoginScreen(navController: NavHostController) {
                         modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
+                    navController.navigate("homescreen")
+
                 } else {
                     Text("Se connecter")
                 }
