@@ -1,4 +1,5 @@
-package com.example.projet.ui.Register
+package com.example.projet.ui.register
+
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,7 +29,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.projet.ui.Login.RegisterData
+import com.example.projet.ui.login.RegisterData
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -60,7 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.projet.ui.Login.LoginScreen
+import com.example.projet.ui.login.LoginScreen
 
 // Progress indicator for registration steps
 @Composable
@@ -78,9 +79,9 @@ fun StepProgressIndicator(currentStep: Int, totalSteps: Int = 3) {
                     .height(4.dp)
                     .padding(horizontal = 2.dp)
                     .background(
-                        color = if (step <= currentStep) 
+                        color = if (step <= currentStep)
                             MaterialTheme.colorScheme.primary
-                        else 
+                        else
                             MaterialTheme.colorScheme.surfaceVariant,
                         shape = MaterialTheme.shapes.small
                     )
@@ -103,7 +104,7 @@ fun RegisterStep1Screen(navController: NavHostController, registerData: MutableS
         TopBar(title = "Étape 1/3 : Profil", onBackClick = { navController.popBackStack() })
 
         StepProgressIndicator(currentStep = 1)
-        
+
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
@@ -130,7 +131,7 @@ fun RegisterStep1Screen(navController: NavHostController, registerData: MutableS
 
         OutlinedTextField(
             value = registerData.value.email,
-            onValueChange = { 
+            onValueChange = {
                 registerData.value = registerData.value.copy(email = it)
                 isEmailValid = android.util.Patterns.EMAIL_ADDRESS.matcher(it).matches() || it.isEmpty()
             },
@@ -223,7 +224,7 @@ fun RegisterStep2Screen(navController: NavHostController, registerData: MutableS
         )
 
         StepProgressIndicator(currentStep = 2)
-        
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Recherche d'allergènes
@@ -244,8 +245,8 @@ fun RegisterStep2Screen(navController: NavHostController, registerData: MutableS
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             maxItemsInEachRow = 3
         ) {
-            allergies.filter { 
-                it.lowercase().contains(searchQuery.lowercase()) 
+            allergies.filter {
+                it.lowercase().contains(searchQuery.lowercase())
             }.forEach { allergy ->
                 AllergyChip(
                     text = allergy,
@@ -281,7 +282,7 @@ fun RegisterStep2Screen(navController: NavHostController, registerData: MutableS
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .clickable { 
+                            .clickable {
                                 registerData.value = registerData.value.copy(dietType = diet)
                             },
                         verticalAlignment = Alignment.CenterVertically
@@ -343,7 +344,7 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
         Spacer(modifier = Modifier.height(32.dp))
 
         StepProgressIndicator(currentStep = 3)
-        
+
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
@@ -357,15 +358,15 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
             trailingIcon = {
                 IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                     Icon(
-                        imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff 
-                                    else Icons.Outlined.Visibility,
-                        contentDescription = if (isPasswordVisible) "Cacher le mot de passe" 
-                                           else "Montrer le mot de passe"
+                        imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff
+                        else Icons.Outlined.Visibility,
+                        contentDescription = if (isPasswordVisible) "Cacher le mot de passe"
+                        else "Montrer le mot de passe"
                     )
                 }
             },
-            visualTransformation = if (isPasswordVisible) VisualTransformation.None 
-                                 else PasswordVisualTransformation(),
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None
+            else PasswordVisualTransformation(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
@@ -380,16 +381,16 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
                             Icon(
                                 imageVector = if (requirement) Icons.Default.Check else Icons.Default.Close,
                                 contentDescription = null,
-                                tint = if (requirement) MaterialTheme.colorScheme.primary 
-                                      else MaterialTheme.colorScheme.error,
+                                tint = if (requirement) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = description,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(start = 4.dp),
-                                color = if (requirement) MaterialTheme.colorScheme.primary 
-                                       else MaterialTheme.colorScheme.error
+                                color = if (requirement) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.error
                             )
                         }
                     }
@@ -408,15 +409,15 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
             trailingIcon = {
                 IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
                     Icon(
-                        imageVector = if (isConfirmPasswordVisible) Icons.Outlined.VisibilityOff 
-                                    else Icons.Outlined.Visibility,
-                        contentDescription = if (isConfirmPasswordVisible) "Cacher le mot de passe" 
-                                           else "Montrer le mot de passe"
+                        imageVector = if (isConfirmPasswordVisible) Icons.Outlined.VisibilityOff
+                        else Icons.Outlined.Visibility,
+                        contentDescription = if (isConfirmPasswordVisible) "Cacher le mot de passe"
+                        else "Montrer le mot de passe"
                     )
                 }
             },
-            visualTransformation = if (isConfirmPasswordVisible) VisualTransformation.None 
-                                 else PasswordVisualTransformation(),
+            visualTransformation = if (isConfirmPasswordVisible) VisualTransformation.None
+            else PasswordVisualTransformation(),
             isError = !passwordsMatch && confirmPassword.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()

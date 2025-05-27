@@ -2,6 +2,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
+
     id("com.google.gms.google-services")
 }
 
@@ -19,6 +21,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildFeatures {
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.15"
+    }
+
+    kotlinOptions {
+        jvmTarget = "19"
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -34,6 +48,9 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+    composeOptions{
+        kotlinCompilerExtensionVersion = "2.1.21"
     }
 }
 
@@ -61,8 +78,6 @@ dependencies {
     // Si besoin : décommente Firestore et Storage
     // implementation("com.google.firebase:firebase-firestore")
     // implementation("com.google.firebase:firebase-storage")
-
-    implementation("androidx.compose.material3:material3-icons-extended:1.2.0-alpha05")
 
     // Tests
     testImplementation(libs.junit)
