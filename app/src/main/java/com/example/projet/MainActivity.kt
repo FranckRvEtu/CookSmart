@@ -13,8 +13,7 @@ class MainActivity : ComponentActivity(){
         super.onCreate(savedInstanceState)
         setContent{
             MonTheme {
-                val navController = rememberNavController()
-                LoginScreen(navController)
+                AppNavigation()
             }
         }
     }
