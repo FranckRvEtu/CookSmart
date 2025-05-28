@@ -23,13 +23,13 @@ fun AppNavigation() {
             LoginScreen(navController)
         }
         composable("register_step1") {
-            RegisterStep1Screen(navController = navController, registerData = registerData)
+            RegisterStep1Screen(navController = navController)
         }
         composable("register_step2") {
-            RegisterStep2Screen(navController = navController, registerData = registerData)
+            RegisterStep2Screen(navController = navController)
         }
         composable("register_step3") {
-            RegisterStep3Screen(navController = navController, registerData = registerData)
+            RegisterStep3Screen(navController = navController)
         }
         // Ajoute ici d'autres écrans si besoin
     }

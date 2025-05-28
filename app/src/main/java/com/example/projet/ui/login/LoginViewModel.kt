@@ -14,6 +14,9 @@ class LoginViewModel : ViewModel(){
     var rememberMe by mutableStateOf(false)
         private set
 
+    var viewPassword by mutableStateOf(false)
+        private set
+
     fun onEmailChange(newMail: String){
         email = newMail
     }
@@ -24,6 +27,10 @@ class LoginViewModel : ViewModel(){
 
     fun onRememberChange(newCheck: Boolean){
         rememberMe = newCheck
+    }
+
+    fun onViewPasswordChange(newCheck: Boolean){
+        viewPassword = newCheck
     }
 
 }

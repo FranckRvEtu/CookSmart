@@ -25,7 +25,6 @@ import androidx.navigation.NavHostController
 
 @Composable
 fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = viewModel()) {
-    var isPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -90,14 +89,14 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                 label = { Text("Mot de passe") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    IconButton(onClick = { viewModel.onViewPasswordChange(!viewModel.viewPassword)}) {
                         Icon(
-                            imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                            contentDescription = if (isPasswordVisible) "Cacher le mot de passe" else "Montrer le mot de passe"
+                            imageVector = if (viewModel.viewPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = if (viewModel.viewPassword) "Cacher le mot de passe" else "Montrer le mot de passe"
                         )
                     }
                 },
-                visualTransformation = if (isPasswordVisible) androidx.compose.ui.text.input.VisualTransformation.None 
+                visualTransformation = if (viewModel.viewPassword) androidx.compose.ui.text.input.VisualTransformation.None
                                      else PasswordVisualTransformation(),
                 singleLine = true,
                 modifier = Modifier
