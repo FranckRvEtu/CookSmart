@@ -29,7 +29,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.projet.ui.login.RegisterData
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -58,12 +57,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.projet.ui.login.LoginScreen
 
-// Progress indicator for registration steps
 @Composable
 fun StepProgressIndicator(currentStep: Int, totalSteps: Int = 3) {
     Row(
@@ -92,7 +91,7 @@ fun StepProgressIndicator(currentStep: Int, totalSteps: Int = 3) {
 
 // Étape 1 d'inscription - Informations personnelles
 @Composable
-fun RegisterStep1Screen(navController: NavHostController, registerData: MutableState<RegisterData>) {
+fun RegisterStep1Screen(navController: NavHostController, registerViewModel: RegisterViewModel ) {
     var isEmailValid by remember { mutableStateOf(true) }
     Column(
         modifier = Modifier
@@ -108,8 +107,8 @@ fun RegisterStep1Screen(navController: NavHostController, registerData: MutableS
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
-            value = registerData.value.firstName,
-            onValueChange = { registerData.value = registerData.value.copy(firstName = it) },
+            value = registerViewModel.firstName,
+            onValueChange = { registerViewModel.onFirstNameChange(it) },
             label = { Text("Prénom") },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             modifier = Modifier
@@ -119,8 +118,8 @@ fun RegisterStep1Screen(navController: NavHostController, registerData: MutableS
         )
 
         OutlinedTextField(
-            value = registerData.value.lastName,
-            onValueChange = { registerData.value = registerData.value.copy(lastName = it) },
+            value = registerViewModel.lastName,
+            onValueChange = { registerViewModel.onLastNameChange(it) },
             label = { Text("Nom") },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             modifier = Modifier
@@ -130,9 +129,9 @@ fun RegisterStep1Screen(navController: NavHostController, registerData: MutableS
         )
 
         OutlinedTextField(
-            value = registerData.value.email,
+            value = registerViewModel.email,
             onValueChange = {
-                registerData.value = registerData.value.copy(email = it)
+                registerViewModel.onEmailChange(it)
                 isEmailValid = android.util.Patterns.EMAIL_ADDRESS.matcher(it).matches() || it.isEmpty()
             },
             label = { Text("Email") },
@@ -156,9 +155,9 @@ fun RegisterStep1Screen(navController: NavHostController, registerData: MutableS
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            enabled = registerData.value.firstName.isNotBlank() &&
-                    registerData.value.lastName.isNotBlank() &&
-                    registerData.value.email.isNotBlank() &&
+            enabled = registerViewModel.firstName.isNotBlank() &&
+                    registerViewModel.lastName.isNotBlank() &&
+                    registerViewModel.email.isNotBlank() &&
                     isEmailValid
         ) {
             Text("Suivant")
@@ -192,7 +191,7 @@ fun AllergyChip(
 
 // Étape 2 d'inscription - Allergènes et Régime alimentaire
 @Composable
-fun RegisterStep2Screen(navController: NavHostController, registerData: MutableState<RegisterData>) {
+fun RegisterStep2Screen(navController: NavHostController, registerViewModel: RegisterViewModel ) {
     var searchQuery by remember { mutableStateOf("") }
     val allergies = listOf(
         "Gluten", "Lactose", "Arachides", "Fruits à coque",
@@ -238,7 +237,7 @@ fun RegisterStep2Screen(navController: NavHostController, registerData: MutableS
                 .padding(bottom = 16.dp)
         )
 
-        // Affichage des allergènes en chips
+        // Allergènes
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -250,14 +249,14 @@ fun RegisterStep2Screen(navController: NavHostController, registerData: MutableS
             }.forEach { allergy ->
                 AllergyChip(
                     text = allergy,
-                    selected = registerData.value.selectedAllergies.contains(allergy),
+                    selected = registerViewModel.selectedAllergies.contains(allergy),
                     onSelectedChange = { isSelected ->
                         val updatedList = if (isSelected) {
-                            registerData.value.selectedAllergies + allergy
+                            registerViewModel.selectedAllergies + allergy
                         } else {
-                            registerData.value.selectedAllergies - allergy
+                            registerViewModel.selectedAllergies - allergy
                         }
-                        registerData.value = registerData.value.copy(selectedAllergies = updatedList)
+                        registerViewModel.onSelectedAllergiesChange(updatedList)
                     }
                 )
             }
@@ -283,14 +282,14 @@ fun RegisterStep2Screen(navController: NavHostController, registerData: MutableS
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                             .clickable {
-                                registerData.value = registerData.value.copy(dietType = diet)
+                                registerViewModel.onDietTypeChange(diet)
                             },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
-                            selected = registerData.value.dietType == diet,
+                            selected = registerViewModel.dietType == diet,
                             onClick = {
-                                registerData.value = registerData.value.copy(dietType = diet)
+                                registerViewModel.onDietTypeChange(diet)
                             }
                         )
                         Text(
@@ -317,19 +316,14 @@ fun RegisterStep2Screen(navController: NavHostController, registerData: MutableS
 
 // Étape 3 d'inscription - Mot de passe et finalisation
 @Composable
-fun RegisterStep3Screen(navController: NavHostController, registerData: MutableState<RegisterData>) {
-    var confirmPassword by remember { mutableStateOf("") }
-    var passwordsMatch by remember { mutableStateOf(true) }
-    var isPasswordVisible by remember { mutableStateOf(false) }
-    var isConfirmPasswordVisible by remember { mutableStateOf(false) }
-    val password = registerData.value.password ?: ""
+fun RegisterStep3Screen(navController: NavHostController, registerViewModel: RegisterViewModel ) {
 
     val passwordRequirements = listOf(
-        (password.length >= 8) to "Au moins 8 caractères",
-        (password.any { it.isDigit() }) to "Au moins un chiffre",
-        (password.any { it.isUpperCase() }) to "Au moins une majuscule",
-        (password.any { it.isLowerCase() }) to "Au moins une minuscule",
-        (password.any { !it.isLetterOrDigit() }) to "Au moins un caractère spécial"
+        (registerViewModel.password.length >= 8) to "Au moins 8 caractères",
+        (registerViewModel.password.any { it.isDigit() }) to "Au moins un chiffre",
+        (registerViewModel.password.any { it.isUpperCase() }) to "Au moins une majuscule",
+        (registerViewModel.password.any { it.isLowerCase() }) to "Au moins une minuscule",
+        (registerViewModel.password.any { !it.isLetterOrDigit() }) to "Au moins un caractère spécial"
     )
 
     Column(
@@ -348,24 +342,24 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
-            value = registerData.value.password,
+            value = registerViewModel.password,
             onValueChange = { newPassword ->
-                registerData.value = registerData.value.copy(password = newPassword)
-                passwordsMatch = newPassword == confirmPassword
+                registerViewModel.onPasswordChange(newPassword)
+                registerViewModel.onPasswordMatch(newPassword == registerViewModel.confirmPassword)
             },
             label = { Text("Mot de passe") },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
             trailingIcon = {
-                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                IconButton(onClick = { registerViewModel.onVisibilityChange(!registerViewModel.isPasswordVisible) }) {
                     Icon(
-                        imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff
+                        imageVector = if (registerViewModel.isPasswordVisible) Icons.Outlined.VisibilityOff
                         else Icons.Outlined.Visibility,
-                        contentDescription = if (isPasswordVisible) "Cacher le mot de passe"
+                        contentDescription = if (registerViewModel.isPasswordVisible) "Cacher le mot de passe"
                         else "Montrer le mot de passe"
                     )
                 }
             },
-            visualTransformation = if (isPasswordVisible) VisualTransformation.None
+            visualTransformation = if (registerViewModel.isPasswordVisible) VisualTransformation.None
             else PasswordVisualTransformation(),
             modifier = Modifier
                 .fillMaxWidth()
@@ -399,31 +393,31 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
         )
 
         OutlinedTextField(
-            value = confirmPassword,
+            value = registerViewModel.confirmPassword,
             onValueChange = {
-                confirmPassword = it
-                passwordsMatch = registerData.value.password == it
+                registerViewModel.onConfirmChange(it)
+                registerViewModel.onPasswordMatch(registerViewModel.password == it)
             },
             label = { Text("Confirmer le mot de passe") },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
             trailingIcon = {
-                IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
+                IconButton(onClick = { registerViewModel.onVisibilityChange(!registerViewModel.isPasswordVisible)}) {
                     Icon(
-                        imageVector = if (isConfirmPasswordVisible) Icons.Outlined.VisibilityOff
+                        imageVector = if (registerViewModel.isPasswordVisible) Icons.Outlined.VisibilityOff
                         else Icons.Outlined.Visibility,
-                        contentDescription = if (isConfirmPasswordVisible) "Cacher le mot de passe"
+                        contentDescription = if (registerViewModel.isPasswordVisible) "Cacher le mot de passe"
                         else "Montrer le mot de passe"
                     )
                 }
             },
-            visualTransformation = if (isConfirmPasswordVisible) VisualTransformation.None
+            visualTransformation = if (registerViewModel.isPasswordVisible) VisualTransformation.None
             else PasswordVisualTransformation(),
-            isError = !passwordsMatch && confirmPassword.isNotEmpty(),
+            isError = !registerViewModel.passwordMatch && registerViewModel.confirmPassword.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             supportingText = {
-                if (!passwordsMatch && confirmPassword.isNotEmpty()) {
+                if (!registerViewModel.passwordMatch && registerViewModel.confirmPassword.isNotEmpty()) {
                     Text(
                         text = "Les mots de passe ne correspondent pas",
                         color = MaterialTheme.colorScheme.error
@@ -433,7 +427,7 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
             singleLine = true
         )
 
-        if (!passwordsMatch) {
+        if (!registerViewModel.passwordMatch) {
             Text(
                 text = "Les mots de passe ne correspondent pas",
                 color = MaterialTheme.colorScheme.error,
@@ -454,7 +448,7 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            enabled = registerData.value.password.length >= 6 && passwordsMatch
+            enabled = registerViewModel.password.length >= 6 && registerViewModel.passwordMatch
         ) {
             Text("S'enregistrer")
         }
@@ -472,13 +466,13 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                Text("Nom: ${registerData.value.lastName} ${registerData.value.firstName}")
-                Text("Email: ${registerData.value.email}")
-                Text("Régime: ${registerData.value.dietType.ifEmpty { "Non spécifié" }}")
+                Text("Nom: ${registerViewModel.lastName} ${registerViewModel.firstName}")
+                Text("Email: ${registerViewModel.email}")
+                Text("Régime: ${registerViewModel.dietType.ifEmpty { "Non spécifié" }}")
                 Text(
                     text = "Allergies: ${
-                        if (registerData.value.selectedAllergies.isEmpty()) "Aucune"
-                        else registerData.value.selectedAllergies.joinToString(", ")
+                        if (registerViewModel.selectedAllergies.isEmpty()) "Aucune"
+                        else registerViewModel.selectedAllergies.joinToString(", ")
                     }"
                 )
             }
@@ -486,7 +480,6 @@ fun RegisterStep3Screen(navController: NavHostController, registerData: MutableS
     }
 }
 
-// Composant de barre supérieure avec titre et flèche retour
 @Composable
 fun TopBar(title: String, onBackClick: () -> Unit) {
     Row(
@@ -504,35 +497,5 @@ fun TopBar(title: String, onBackClick: () -> Unit) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 8.dp)
         )
-    }
-}
-
-// Configuration de la navigation principale
-@Composable
-fun AuthNavigation() {
-    val navController = rememberNavController()
-    val registerData = remember { mutableStateOf(RegisterData()) }
-
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") {
-            LoginScreen(navController)
-        }
-        composable("register_step1") {
-            RegisterStep1Screen(navController, registerData)
-        }
-        composable("register_step2") {
-            RegisterStep2Screen(navController, registerData)
-        }
-        composable("register_step3") {
-            RegisterStep3Screen(navController, registerData)
-        }
-    }
-}
-
-// Point d'entrée pour l'écran principal
-@Composable
-fun RecipesAuthApp() {
-    MaterialTheme {
-        AuthNavigation()
     }
 }
