@@ -19,14 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 
 @Composable
-fun LoginScreen(navController: NavHostController) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isPasswordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
+fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = viewModel()) {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -71,12 +69,9 @@ fun LoginScreen(navController: NavHostController) {
             }
 
             OutlinedTextField(
-                value = email,
-                onValueChange = { 
-                    email = it
-                    errorMessage = null
-                },
-                isError = email.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches(),
+                value = viewModel.email,
+                onValueChange = { viewModel.onEmailChange(it) },
+                isError = viewModel.email.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(viewModel.email).matches(),
                 label = { Text("Email") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions.Default.copy(
@@ -89,22 +84,19 @@ fun LoginScreen(navController: NavHostController) {
             )
 
             OutlinedTextField(
-                value = password,
-                onValueChange = { 
-                    password = it
-                    errorMessage = null
-                },
+                value = viewModel.password,
+                onValueChange = {viewModel.onPasswordChange(it)},
                 label = { Text("Mot de passe") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    IconButton(onClick = { viewModel.onViewPasswordChange(!viewModel.viewPassword)}) {
                         Icon(
-                            imageVector = if (isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                            contentDescription = if (isPasswordVisible) "Cacher le mot de passe" else "Montrer le mot de passe"
+                            imageVector = if (viewModel.viewPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = if (viewModel.viewPassword) "Cacher le mot de passe" else "Montrer le mot de passe"
                         )
                     }
                 },
-                visualTransformation = if (isPasswordVisible) androidx.compose.ui.text.input.VisualTransformation.None 
+                visualTransformation = if (viewModel.viewPassword) androidx.compose.ui.text.input.VisualTransformation.None
                                      else PasswordVisualTransformation(),
                 singleLine = true,
                 modifier = Modifier
@@ -120,8 +112,8 @@ fun LoginScreen(navController: NavHostController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
-                    checked = rememberMe,
-                    onCheckedChange = { rememberMe = it }
+                    checked = viewModel.rememberMe,
+                    onCheckedChange = { viewModel.onRememberChange(it) }
                 )
                 Text(
                     text = "Se souvenir de moi",
@@ -132,7 +124,7 @@ fun LoginScreen(navController: NavHostController) {
             Button(
                 onClick = {
                     isLoading = true
-                    if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    if (!android.util.Patterns.EMAIL_ADDRESS.matcher(viewModel.email).matches()) {
                         errorMessage = "Format d'email invalide"
                         isLoading = false
                         return@Button
@@ -145,7 +137,7 @@ fun LoginScreen(navController: NavHostController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp),
-                enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+                enabled = !isLoading && viewModel.email.isNotBlank() && viewModel.password.isNotBlank()
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -158,7 +150,7 @@ fun LoginScreen(navController: NavHostController) {
             }
 
             TextButton(
-                onClick = { navController.navigate("register_step1") },
+                onClick = { navController.navigate("register") },
                 modifier = Modifier.padding(vertical = 8.dp)
             ) {
                 Text("Pas encore de compte ? S'inscrire")
@@ -166,13 +158,3 @@ fun LoginScreen(navController: NavHostController) {
         }
     }
 }
-
-// Modèle pour stocker les données d'inscription
-data class RegisterData(
-    var firstName: String = "",
-    var lastName: String = "",
-    var email: String = "",
-    var selectedAllergies: List<String> = emptyList(),
-    var dietType: String = "",
-    var password: String = ""
-)
