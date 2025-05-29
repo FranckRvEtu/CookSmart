@@ -1,5 +1,7 @@
 package com.example.projet.ui.profile
+import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -17,13 +19,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.projet.ui.ingredientlist.IngredientScannerScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxSize() // The Column itself will fill the whole screen
             .background(MaterialTheme.colorScheme.background)
     ) {
         // Top App Bar
@@ -56,8 +59,11 @@ fun ProfileScreen(navController: NavController) {
             )
         )
 
+        // This LazyColumn will take up the remaining space in the Column
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .weight(1f) // MODIFICATION HERE
+                .fillMaxWidth(), // You might still want it to fill the width
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
@@ -83,7 +89,7 @@ fun ProfileScreen(navController: NavController) {
 
             item {
                 // Options du profil
-                ProfileOptionsSection()
+                ProfileOptionsSection(navController)
             }
         }
     }
@@ -415,7 +421,7 @@ fun FavoriteRecipeItem(recipe: Recipe) {
 }
 
 @Composable
-fun ProfileOptionsSection() {
+fun ProfileOptionsSection(navController: NavController) {
     Text(
         text = "Options",
         fontSize = 20.sp,
@@ -428,6 +434,13 @@ fun ProfileOptionsSection() {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        ProfileOption(
+            icon = Icons.Default.Info,
+            title = "Ingredients",
+            onClick = {
+                Log.d("NavigationDebug", "Tentative de navigation vers inglist")
+                navController.navigate("inglist") },
+        )
         ProfileOption(
             icon = Icons.Default.Settings,
             title = "Paramètres",
@@ -463,7 +476,9 @@ fun ProfileOption(
     isDestructive: Boolean = false
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {

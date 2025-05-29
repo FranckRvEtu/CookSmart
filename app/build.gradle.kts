@@ -64,6 +64,8 @@ dependencies {
     implementation(libs.androidx.foundation.android)
     implementation(libs.androidx.material3.android)
     implementation("androidx.navigation:navigation-compose:2.7.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
 
     // Room Database
     val room_version = "2.6.1"
