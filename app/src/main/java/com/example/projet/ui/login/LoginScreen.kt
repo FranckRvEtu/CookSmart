@@ -1,5 +1,8 @@
 package com.example.projet.ui.login
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,16 +20,26 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
+import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
 
 @Composable
 fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = viewModel()) {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val signInLauncher = rememberLauncherForActivityResult(
+        //contract = ActivityResultContracts.StartActivityForResult()
+        FirebaseAuthUIActivityResultContract()
+    ){res ->
+        viewModel.onLoginResult(res)
+    }
 
     Box(
         modifier = Modifier
@@ -129,10 +142,9 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                         isLoading = false
                         return@Button
                     }
-                    // TODO: Implement login logic here
-                    // For now, simulate login failure
-                    errorMessage = "Email ou mot de passe incorrect"
-                    isLoading = false
+
+                    viewModel.login()
+
                 },
                 modifier = Modifier
                     .fillMaxWidth()
