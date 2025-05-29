@@ -150,7 +150,7 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
             }
 
             TextButton(
-                onClick = { navController.navigate("register_step1") },
+                onClick = { navController.navigate("register") },
                 modifier = Modifier.padding(vertical = 8.dp)
             ) {
                 Text("Pas encore de compte ? S'inscrire")
@@ -158,13 +158,3 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
         }
     }
 }
-
-// Modèle pour stocker les données d'inscription
-data class RegisterData(
-    var firstName: String = "",
-    var lastName: String = "",
-    var email: String = "",
-    var selectedAllergies: List<String> = emptyList(),
-    var dietType: String = "",
-    var password: String = ""
-)

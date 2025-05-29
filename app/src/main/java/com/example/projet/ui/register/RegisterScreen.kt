@@ -29,7 +29,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.projet.ui.login.RegisterData
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,7 +63,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.projet.ui.login.LoginScreen
 
-// Progress indicator for registration steps
 @Composable
 fun StepProgressIndicator(currentStep: Int, totalSteps: Int = 3) {
     Row(
@@ -93,7 +91,7 @@ fun StepProgressIndicator(currentStep: Int, totalSteps: Int = 3) {
 
 // Étape 1 d'inscription - Informations personnelles
 @Composable
-fun RegisterStep1Screen(navController: NavHostController, registerViewModel: RegisterViewModel = viewModel()) {
+fun RegisterStep1Screen(navController: NavHostController, registerViewModel: RegisterViewModel ) {
     var isEmailValid by remember { mutableStateOf(true) }
     Column(
         modifier = Modifier
@@ -193,7 +191,7 @@ fun AllergyChip(
 
 // Étape 2 d'inscription - Allergènes et Régime alimentaire
 @Composable
-fun RegisterStep2Screen(navController: NavHostController, registerViewModel: RegisterViewModel = viewModel()) {
+fun RegisterStep2Screen(navController: NavHostController, registerViewModel: RegisterViewModel ) {
     var searchQuery by remember { mutableStateOf("") }
     val allergies = listOf(
         "Gluten", "Lactose", "Arachides", "Fruits à coque",
@@ -239,7 +237,7 @@ fun RegisterStep2Screen(navController: NavHostController, registerViewModel: Reg
                 .padding(bottom = 16.dp)
         )
 
-        // Affichage des allergènes en chips
+        // Allergènes
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -318,9 +316,7 @@ fun RegisterStep2Screen(navController: NavHostController, registerViewModel: Reg
 
 // Étape 3 d'inscription - Mot de passe et finalisation
 @Composable
-fun RegisterStep3Screen(navController: NavHostController, registerViewModel: RegisterViewModel = viewModel()) {
-    
-    
+fun RegisterStep3Screen(navController: NavHostController, registerViewModel: RegisterViewModel ) {
 
     val passwordRequirements = listOf(
         (registerViewModel.password.length >= 8) to "Au moins 8 caractères",
@@ -484,7 +480,6 @@ fun RegisterStep3Screen(navController: NavHostController, registerViewModel: Reg
     }
 }
 
-// Composant de barre supérieure avec titre et flèche retour
 @Composable
 fun TopBar(title: String, onBackClick: () -> Unit) {
     Row(
@@ -502,35 +497,5 @@ fun TopBar(title: String, onBackClick: () -> Unit) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 8.dp)
         )
-    }
-}
-
-// Configuration de la navigation principale
-@Composable
-fun AuthNavigation() {
-    val navController = rememberNavController()
-    val registerData = remember { mutableStateOf(RegisterData()) }
-
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") {
-            LoginScreen(navController)
-        }
-        composable("register_step1") {
-            RegisterStep1Screen(navController)
-        }
-        composable("register_step2") {
-            RegisterStep2Screen(navController)
-        }
-        composable("register_step3") {
-            RegisterStep3Screen(navController)
-        }
-    }
-}
-
-// Point d'entrée pour l'écran principal
-@Composable
-fun RecipesAuthApp() {
-    MaterialTheme {
-        AuthNavigation()
     }
 }

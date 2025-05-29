@@ -1,6 +1,5 @@
 package com.example.projet.ui.register
 
-import android.opengl.Visibility
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
