@@ -142,9 +142,7 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                         isLoading = false
                         return@Button
                     }
-
                     viewModel.login()
-
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -156,6 +154,8 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                         modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
+                    navController.navigate("homescreen")
+
                 } else {
                     Text("Se connecter")
                 }
