@@ -22,6 +22,12 @@ class LoginViewModel : ViewModel(){
     var viewPassword by mutableStateOf(false)
         private set
 
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    var isLoggedIn by mutableStateOf(false)
+        private set
+
     fun onEmailChange(newMail: String){
         email = newMail
     }
@@ -38,16 +44,23 @@ class LoginViewModel : ViewModel(){
         viewPassword = newCheck
     }
 
+    fun onErrorMessageChange(newMessage: String?){
+        errorMessage = newMessage
+    }
+
+
+
     fun login(){
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful){
-                    Log.d("LOGIN", "GG")
-                    //TODO : Navigation
+                    Log.d("LOGIN", "OK")
+                    isLoggedIn = true
+
                 }
                 else{
                     Log.d("LOGIN", "KO")
-                    //TODO : Message d'erreur
+                    errorMessage = "Erreur d'authentification"
                 }
             }
     }

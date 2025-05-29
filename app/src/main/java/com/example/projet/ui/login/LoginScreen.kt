@@ -1,8 +1,5 @@
 package com.example.projet.ui.login
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContract
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,25 +17,29 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
-import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
+
 
 @Composable
 fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = viewModel()) {
     var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
-    val signInLauncher = rememberLauncherForActivityResult(
-        //contract = ActivityResultContracts.StartActivityForResult()
-        FirebaseAuthUIActivityResultContract()
-    ){res ->
-        viewModel.onLoginResult(res)
+    LaunchedEffect(viewModel.isLoggedIn) {
+        if (viewModel.isLoggedIn) {
+            navController.navigate("homescreen") {
+                popUpTo("login") { inclusive = true }
+            }
+        }else{
+            isLoading = false
+        }
+    }
+
+    fun handleLoggedIn(){
+        navController.navigate("home") {
+            popUpTo("login") { inclusive = true }
+        }
     }
 
     Box(
@@ -68,11 +69,11 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
 
             // Error Message
             AnimatedVisibility(
-                visible = errorMessage != null,
+                visible = viewModel.errorMessage != null,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                errorMessage?.let { error ->
+                viewModel.errorMessage?.let { error ->
                     Text(
                         text = error,
                         color = MaterialTheme.colorScheme.error,
@@ -138,11 +139,12 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                 onClick = {
                     isLoading = true
                     if (!android.util.Patterns.EMAIL_ADDRESS.matcher(viewModel.email).matches()) {
-                        errorMessage = "Format d'email invalide"
+                        viewModel.onErrorMessageChange("Format d'email invalide")
                         isLoading = false
                         return@Button
                     }
                     viewModel.login()
+
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -154,8 +156,6 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                         modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
-                    navController.navigate("homescreen")
-
                 } else {
                     Text("Se connecter")
                 }
