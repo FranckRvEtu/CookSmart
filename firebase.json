@@ -1,40 +1,31 @@
 {
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint",
-        "npm --prefix \"$RESOURCE_DIR\" run build"
-      ]
-    }
-  ],
+  "functions": {
+    "source": "functions",
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run build"
+    ]
+  },
   "emulators": {
-    "auth": {
-      "port": 9099
-    },
     "functions": {
-      "port": 9100
+      "port": 5001
     },
     "firestore": {
       "port": 9101
     },
-    "database": {
-      "port": 9102
-    },
-    "storage": {
-      "port": 9103
+    "hosting": {
+      "port": 5000
     },
     "ui": {
-      "enabled": true
-    },
-    "singleProjectMode": true
+      "enabled": true,
+      "port": 4000
+    }
+  },
+  "hosting": {
+    "rewrites": [
+      {
+        "source": "/api/search",
+        "function": "searchMarmitonRecipes"
+      }
+    ]
   }
 }

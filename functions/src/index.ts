@@ -122,9 +122,9 @@ function processRecipesByIngredients(recipes: Recipe[], availableIngredients: st
 export const searchMarmitonRecipes = onRequest(functionConfig, async (request, response) => {
   await new Promise(resolve => corsHandler(request, response, resolve));
 
-  try {
-    const params: SearchParams = request.body;
-    logger.info("Starting searchMarmitonRecipes request with params:", params);
+    try {
+        const params: SearchParams = request.body;
+        logger.info("Starting searchMarmitonRecipes request with params:", JSON.stringify(params));
 
     const qb = new MarmitonQueryBuilder();
 
@@ -157,14 +157,43 @@ export const searchMarmitonRecipes = onRequest(functionConfig, async (request, r
       success: true,
       data: recipes
     });
-  } catch (error) {
-    logger.error("Error searching recipes:", error);
-    response.status(500).json({
-      success: false,
-      error: "Failed to search recipes",
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
+    } catch (error) {
+        logger.error("Error searching recipes:", error);
+        
+        // Check for specific error types
+        if (error instanceof Error) {
+            if (error.message.includes("NOT_FOUND")) {
+                response.status(404).json({
+                    success: false,
+                    error: "Recipe search endpoint not found",
+                    details: error.message
+                });
+            } else if (error.message.includes("TIMEOUT")) {
+                response.status(408).json({
+                    success: false,
+                    error: "Search request timed out",
+                    details: error.message
+                });
+            } else {
+                response.status(500).json({
+                    success: false,
+                    error: "Failed to search recipes",
+                    details: error.message
+                });
+            }
+        } else {
+            response.status(500).json({
+                success: false,
+                error: "An unknown error occurred",
+                details: "No error details available"
+            });
+        }
+        
+        logger.error("Full error details:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : "No stack trace"
+        });
+    }
 });
 
 // Get filtered recipes by difficulty

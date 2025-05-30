@@ -17,6 +17,7 @@ import com.example.project.ui.home.HomeScreen
 import com.example.projet.ui.profile.ProfileScreen
 import com.example.projet.ui.ingredientlist.IngredientScannerScreen
 import com.example.projet.ui.recipedetail.RecipeDetailScreen
+import com.example.projet.ui.search.SearchScreen
 import com.example.projet.ui.register.RegisterViewModel
 
 @Composable
@@ -72,6 +73,20 @@ fun AppNavigation() {
                 onBackClick = { /* Navigate back */ },
                 onShareClick = { /* Share recipe */ },
                 onAiAssistantClick = { recipeId ->  navController.navigate("ai_assistant/$recipeId")}
+            )
+        }
+
+        composable(
+            "search?query={query}",
+            arguments = listOf(navArgument("query") {
+                type = NavType.StringType
+                defaultValue = ""
+            })
+        ) { backStackEntry ->
+            val query = backStackEntry.arguments?.getString("query") ?: ""
+            SearchScreen(
+                navController = navController,
+                initialQuery = query
             )
         }
 
