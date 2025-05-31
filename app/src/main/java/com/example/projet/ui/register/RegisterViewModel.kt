@@ -4,6 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.ktx.Firebase
 
 class RegisterViewModel: ViewModel() {
     var firstName by mutableStateOf("")
@@ -24,6 +27,7 @@ class RegisterViewModel: ViewModel() {
         private set
     var isPasswordVisible by mutableStateOf(false)
         private set
+    val db = FirebaseFirestore.getInstance()
 
     fun onFirstNameChange(newFirstName: String){
         firstName = newFirstName
@@ -55,5 +59,33 @@ class RegisterViewModel: ViewModel() {
     fun onVisibilityChange(newVisibility: Boolean){
         isPasswordVisible = newVisibility
     }
-
+    //TODO : Fonction pour l'inscription
+    fun registerUser(
+        onSuccess : () -> Unit,
+        onError : (String) -> Unit
+    ){
+        val auth = FirebaseAuth.getInstance()
+        auth.createUserWithEmailAndPassword(email, password)
+            .addOnSuccessListener{
+                val user = auth.currentUser
+                val userData = hashMapOf(
+                    "firstname" to firstName,
+                    "lastname" to lastName,
+                    "pfp" to "",
+                    "regime" to dietType,
+                    "allergens" to selectedAllergies,
+                    "ingredients" to listOf<String>()
+                )
+                db.collection("users").add(userData)
+                    .addOnCompleteListener{
+                        onSuccess()
+                    }
+                    .addOnFailureListener { e ->
+                        onError("Erreur lors de l'enregistrement de l'utilisateur : ${e.message}")
+                    }
+            }
+            .addOnFailureListener {e->
+                onError("Erreur lors de l'enregistrement de l'utilisateur : ${e.message}")
+            }
+        }
 }
