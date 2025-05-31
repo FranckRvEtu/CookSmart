@@ -49,7 +49,7 @@ class LoginViewModel : ViewModel(){
     }
 
 
-
+    /*DEPRECATED
     fun login(){
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
@@ -63,6 +63,24 @@ class LoginViewModel : ViewModel(){
                     errorMessage = "Erreur d'authentification"
                 }
             }
-    }
+    }*/
 
+    fun login2(
+        onSuccess : () -> Unit,
+        onFail : () -> Unit
+    ){
+        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+            .addOnSuccessListener {
+                Log.d("LOGIN", "OK")
+                isLoggedIn = true
+                onSuccess()
+            }
+
+            .addOnFailureListener{
+                Log.d("LOGIN", "KO")
+                errorMessage = "Erreur d'authentification"
+                onFail()
+            }
+    }
 }
+
