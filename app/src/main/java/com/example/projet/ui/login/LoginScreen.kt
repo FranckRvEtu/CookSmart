@@ -36,12 +36,6 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
         }
     }
 
-    fun handleLoggedIn(){
-        navController.navigate("home") {
-            popUpTo("login") { inclusive = true }
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -143,8 +137,17 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                         isLoading = false
                         return@Button
                     }
-                    viewModel.login()
-
+                    //viewModel.login()
+                    viewModel.login2(
+                        onSuccess = {
+                            navController.navigate("homescreen") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        },
+                        onFail = {
+                            isLoading = false
+                        }
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()

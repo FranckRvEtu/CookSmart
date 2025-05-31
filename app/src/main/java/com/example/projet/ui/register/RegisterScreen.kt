@@ -440,8 +440,6 @@ fun RegisterStep3Screen(navController: NavHostController, registerViewModel: Reg
 
         Button(
             onClick = {
-                /* TODO: Logique d'enregistrement */
-
                 registerViewModel.registerUser(
                     onSuccess = {
                         navController.navigate("homescreen") {
