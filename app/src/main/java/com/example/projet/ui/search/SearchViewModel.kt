@@ -29,13 +29,14 @@ enum class RECIPE_PRICE {
 private const val TAG = "SearchViewModel"
 
 class SearchViewModel : ViewModel() {
-    private val functions: FirebaseFunctions = Firebase.functions
+    val functions: FirebaseFunctions = Firebase.functions
     private val gson = Gson()
     private val firebaseAI = Firebase.ai(backend = GenerativeBackend.googleAI())
     private val aiModel = firebaseAI.generativeModel("gemini-2.0-flash-lite")
 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState = _uiState.asStateFlow()
+
 
     fun updateQuery(query: String) {
         Log.d(TAG, "Updating search query: $query")
@@ -119,7 +120,6 @@ class SearchViewModel : ViewModel() {
                     Log.d(TAG, "Calling cloud function: ${FirebaseConfig.Functions.SEARCH_RECIPES}")
                     val result = functions
                         .getHttpsCallable(FirebaseConfig.Functions.SEARCH_RECIPES)
-                        //.timeout(60, TimeUnit.SECONDS)
                         .call(params)
                         .await()
 
@@ -136,6 +136,7 @@ class SearchViewModel : ViewModel() {
                         isAnalyzingAllergens = true
                     )
 
+                    /*
                     // Then analyze allergens for each recipe
                     val allergenResults = mutableMapOf<String, Boolean>()
                     searchResult.data.forEach { recipe ->
@@ -146,7 +147,7 @@ class SearchViewModel : ViewModel() {
                     _uiState.value = _uiState.value.copy(
                         containsAllergens = allergenResults,
                         isAnalyzingAllergens = false
-                    )
+                    )*/
                 } catch (e: Exception) {
                     Log.e(TAG, "Search failed", e)
                     val errorMessage = when {
@@ -176,34 +177,43 @@ class SearchViewModel : ViewModel() {
         
         with(_uiState.value) {
             if (searchQuery.isNotEmpty()) {
-                params["title"] = searchQuery
+                params["query"] = searchQuery
                 Log.d(TAG, "Adding search query: $searchQuery")
             }
             maxTime?.let { 
-                params["maxTime"] = it
-                Log.d(TAG, "Adding max time: $it")
+                params["preptime"] = it
+                Log.d(TAG, "Adding prep time: $it")
             }
             difficulty?.let { 
                 try {
-                    val difficultyEnum = RECIPE_DIFFICULTY.valueOf(it)
-                    params["difficulty"] = difficultyEnum.toString()
-                    Log.d(TAG, "Adding difficulty: $difficultyEnum")
+                    val difficultyValue = when(RECIPE_DIFFICULTY.valueOf(it)) {
+                        RECIPE_DIFFICULTY.VERY_EASY -> 2
+                        RECIPE_DIFFICULTY.EASY -> 4
+                        RECIPE_DIFFICULTY.MEDIUM -> 7
+                        RECIPE_DIFFICULTY.HARD -> 10
+                    }
+                    params["difficulty"] = difficultyValue
+                    Log.d(TAG, "Adding difficulty: $difficultyValue")
                 } catch (e: IllegalArgumentException) {
                     Log.w(TAG, "Invalid difficulty value: $it")
                 }
             }
             price?.let { 
                 try {
-                    val priceEnum = RECIPE_PRICE.valueOf(it)
-                    params["price"] = priceEnum.toString()
-                    Log.d(TAG, "Adding price: $priceEnum")
+                    val priceValue = when(RECIPE_PRICE.valueOf(it)) {
+                        RECIPE_PRICE.CHEAP -> 3
+                        RECIPE_PRICE.MEDIUM -> 6
+                        RECIPE_PRICE.EXPENSIVE -> 9
+                    }
+                    params["price"] = priceValue
+                    Log.d(TAG, "Adding price: $priceValue")
                 } catch (e: IllegalArgumentException) {
                     Log.w(TAG, "Invalid price value: $it")
                 }
             }
             if (withoutOven) {
-                params["withoutOven"] = true
-                Log.d(TAG, "Adding withoutOven filter")
+                params["withOven"] = false
+                Log.d(TAG, "Adding without oven filter")
             }
             params["limit"] = 20
         }
@@ -229,17 +239,31 @@ data class SearchUiState(
 data class Recipe(
     val id: String,
     val name: String,
-    val description: String,
-    val url: String,
-    val imageUrl: String?,
-    val duration: Int,
-    val difficulty: String,
-    val price: String,
+    val difficulty: Int,
+    val images: String,
     val ingredients: List<String>,
+    val people: Int,
+    val preptime: Int,
+    val price: Int,
     val steps: List<String>,
-    val rating: Float,
-    val reviews: Int
+    val tags: List<String>,
+    val type: String,
+    val withOven: Boolean
 )
+
+// Helper functions for data transformations
+fun getDifficultyText(difficulty: Int): String = when {
+    difficulty <= 2 -> "VERY_EASY"
+    difficulty <= 4 -> "EASY"
+    difficulty <= 7 -> "MEDIUM"
+    else -> "HARD"
+}
+
+fun getPriceText(price: Int): String = when {
+    price <= 3 -> "CHEAP"
+    price <= 6 -> "MEDIUM"
+    else -> "EXPENSIVE"
+}
 
 data class SearchResult(
     val success: Boolean,

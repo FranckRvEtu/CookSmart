@@ -85,7 +85,7 @@ dependencies {
 
 
     // Si besoin : décommente Firestore et Storage
-    // implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-firestore")
     // implementation("com.google.firebase:firebase-storage")
 
     // Tests

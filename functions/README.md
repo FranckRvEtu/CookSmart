@@ -1,101 +1,93 @@
-# Firebase Functions for CookSmart
+# CookSmart Cloud Functions
 
-This directory contains the Cloud Functions for the CookSmart application.
+## Configuration
 
-## Setup
+Environment variables required:
+- `MISTRAL_API_KEY`: Your Mistral AI API key
 
-1. Install dependencies:
-```bash
-npm install
+## API Endpoints
+
+All recipe endpoints return recipes in the following JSON format:
+
+```typescript
+interface Recipe {
+  id: string;           // Randomly generated ID
+  difficulty: number;   // 1-4 scale
+  images: string;       // Base64 encoded image
+  ingredients: string[];
+  name: string;
+  people: number;       // Number of servings
+  preptime: number;     // Preparation time in minutes
+  price: number;        // Estimated price
+  steps: string[];      // Cooking instructions
+  tags: string[];       // Recipe tags (e.g., "Easy", "Quick", "Vegetarian")
+  type: string;         // Recipe type (e.g., "DESSERT", "DINNER")
+  withOven: boolean;    // Whether the recipe requires an oven
+}
 ```
 
-2. Build the functions:
-```bash
-npm run build
+### Available Endpoints
+
+1. `searchRecipesByIngredients`
+   - Finds recipes that can be made with specified ingredients
+   - Body:
+     ```typescript
+     {
+       ingredients: string[];     // List of available ingredients
+       searchParams?: {          // Optional search parameters
+         title?: string;         // Recipe title filter
+         maxTime?: number;       // Maximum preparation time
+         difficulty?: number;     // Difficulty level (1-4)
+         withoutOven?: boolean;  // Whether to exclude recipes requiring an oven
+       }
+     }
+     ```
+   - Returns an array of recipes with additional fields:
+     - `matchingIngredients`: Array of ingredients from your list that are used
+     - `matchingIngredientsCount`: Number of matching ingredients
+     - `canBeMadeWithIngredients`: Whether all required ingredients are available
+
+2. `searchRecipes`
+   - Searches for recipes based on criteria
+   - Body:
+     ```typescript
+     {
+       title?: string;         // Recipe title filter
+       maxTime?: number;       // Maximum preparation time
+       difficulty?: number;    // Difficulty level (1-4)
+       withoutOven?: boolean; // Whether to exclude recipes requiring an oven
+     }
+     ```
+
+3. `getEasyRecipes`
+   - Returns beginner-friendly recipes (difficulty level 1)
+   - No request body needed
+
+4. `getQuickRecipes`
+   - Returns recipes that can be prepared in 30 minutes or less
+   - No request body needed
+
+5. `getBudgetRecipes`
+   - Returns affordable recipes with low-cost ingredients
+   - No request body needed
+
+## Response Format
+
+All endpoints return responses in the following format:
+
+```typescript
+{
+  success: boolean;
+  data?: Recipe[];
+  error?: string;
+  details?: string;
+}
 ```
-
-## Local Development
-
-1. Start the emulator:
-```bash
-firebase emulators:start
-```
-
-This will start:
-- Functions emulator on port 5001
-- Firebase UI on port 4000
-
-2. Using the emulator in the app:
-- The app automatically detects if it's running in debug mode
-- In debug mode, it will use the emulator at 10.0.2.2:5001
-- In release mode, it will use production Firebase
-
-## Deployment
-
-1. Deploy all functions:
-```bash
-firebase deploy --only functions
-```
-
-2. Deploy specific function:
-```bash
-firebase deploy --only functions:searchMarmitonRecipes
-```
-
-## Available Functions
-
-### searchMarmitonRecipes
-- Endpoint: `/searchMarmitonRecipes`
-- Method: POST
-- Parameters:
-  ```typescript
-  {
-    title?: string;
-    maxTime?: number;
-    difficulty?: "VERY_EASY" | "EASY" | "MEDIUM" | "HARD";
-    price?: "CHEAP" | "MEDIUM" | "EXPENSIVE";
-    withoutOven?: boolean;
-    limit?: number;
-  }
-  ```
-- Response:
-  ```typescript
-  {
-    success: boolean;
-    data: Array<{
-      id: string;
-      name: string;
-      description: string;
-      url: string;
-      imageUrl?: string;
-      duration: number;
-      difficulty: string;
-      price: string;
-      ingredients: string[];
-      steps: string[];
-      rating: number;
-      reviews: number;
-    }>;
-  }
-  ```
 
 ## Error Handling
 
-The functions return appropriate HTTP status codes:
+The API may return the following status codes:
 - 200: Success
-- 404: Endpoint not found
-- 408: Request timeout
-- 500: Server error
-
-All errors include detailed messages in the response body.
-
-## Debugging
-
-To view function logs:
-```bash
-firebase functions:log
-```
-
-To view emulator logs:
-```bash
-firebase emulators:start --inspect-functions
+- 400: Bad Request (invalid parameters)
+- 500: Internal Server Error
+- 408: Request Timeout

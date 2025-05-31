@@ -1,24 +1,177 @@
-import { onRequest, HttpsOptions } from "firebase-functions/v2/https";
+import { onCall, HttpsOptions } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
+import MistralClient from "@mistralai/mistralai";
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Configuration for all functions
 const functionConfig: HttpsOptions = {
   timeoutSeconds: 120,
   memory: '256MiB'
 };
-import * as logger from "firebase-functions/logger";
-import cors from 'cors';
-import { searchRecipes, MarmitonQueryBuilder, RECIPE_PRICE, RECIPE_DIFFICULTY, Recipe } from 'marmiton-api';
 
-// Initialize cors middleware
-const corsHandler = cors({ origin: true });
+// Initialize Mistral client with API key
+const mistralApiKey = process.env.MISTRAL_API_KEY;
+logger.info("Environment variable MISTRAL_API_KEY:", !!process.env.MISTRAL_API_KEY);
+logger.info("Actual API key value:", process.env.MISTRAL_API_KEY);
+
+const mistral = new MistralClient(mistralApiKey || "");
+
+// Type definitions for function parameters
+interface SearchByIngredientsParams {
+  searchParams?: {
+    title?: string;
+    maxTime?: number;
+    difficulty?: string;
+    withoutOven?: boolean;
+  };
+  ingredients: string[];
+}
+
+interface SearchFiltersParams {
+  title?: string;
+  maxTime?: number;
+  difficulty?: string;
+  withoutOven?: boolean;
+}
+
+interface MistralRecipe {
+  id: string;
+  difficulty: number;
+  images: string;
+  ingredients: string[];
+  name: string;
+  people: number;
+  preptime: number;
+  price: number;
+  steps: string[];
+  tags: string[];
+  type: string;
+  withOven: boolean;
+}
+
+const RECIPE_PROMPT = `You are a cooking expert. Generate recipes based on the given criteria.
+Your response must ONLY contain a valid JSON array with exactly 5 recipes.
+
+Each recipe must strictly follow this format:
+{
+  "id": "<UUID v4, eg: 123e4567-e89b-12d3-a456-426614174000>",
+  "difficulty": <integer from 1 to 4>,
+  "images": "",
+  "ingredients": ["ingredient1", "ingredient2"],
+  "name": "<recipe name>",
+  "people": <number of servings>,
+  "preptime": <minutes>,
+  "price": <estimated cost>,
+  "steps": ["step1", "step2"],
+  "tags": ["tag1", "tag2"],
+  "type": "DINNER",
+  "withOven": true|false
+}
+
+Rules:
+1. Response must be parseable JSON
+2. Must return exactly 5 recipes
+3. No text before or after the JSON array
+4. All fields are required
+5. Difficulty levels: 1=Easy, 2=Medium, 3=Hard, 4=Expert
+6. Recipe types: "DINNER", "DESSERT", "BREAKFAST", "LUNCH", "SNACK"
+7. Generate realistic UUIDs for ids
+8. Leave images as empty string
+9. Price should be a realistic estimate in dollars
+
+Here's the exact response format (replace with actual recipes):
+[{"id":"...","difficulty":1,"images":"","ingredients":[],"name":"..."}...]`;
+
+function validateRecipeResponse(data: any): data is MistralRecipe[] {
+  try {
+    if (typeof data !== 'string') {
+      console.log("Data is not a string:", typeof data);
+      return false;
+    }
+
+    // Remove markdown code block if present
+    const cleanData = data.replace(/```json\n|\n```/g, '').trim();
+    console.log("Parsing JSON data:", cleanData);
+    const recipes = JSON.parse(cleanData);
+
+    if (!Array.isArray(recipes)) {
+      console.log("Not an array:", typeof recipes);
+      return false;
+    }
+
+    if (recipes.length !== 5) {
+      console.log("Array length not 5:", recipes.length);
+      return false;
+    }
+
+    return recipes.every((recipe, index) => {
+      const validations = {
+        id: typeof recipe.id === 'string',
+        difficulty: typeof recipe.difficulty === 'number' && recipe.difficulty >= 1 && recipe.difficulty <= 4,
+        ingredients: Array.isArray(recipe.ingredients),
+        name: typeof recipe.name === 'string',
+        people: typeof recipe.people === 'number',
+        preptime: typeof recipe.preptime === 'number',
+        price: typeof recipe.price === 'number',
+        steps: Array.isArray(recipe.steps),
+        tags: Array.isArray(recipe.tags),
+        type: typeof recipe.type === 'string',
+        withOven: typeof recipe.withOven === 'boolean'
+      };
+
+      const failed = Object.entries(validations)
+        .filter(([_, valid]) => !valid)
+        .map(([field]) => field);
+
+      if (failed.length > 0) {
+        console.log(`Recipe ${index} validation failed for fields:`, failed);
+        console.log('Recipe:', recipe);
+      }
+
+      return failed.length === 0;
+    });
+  } catch (error) {
+    console.log("Validation error:", error);
+    return false;
+  }
+}
+
+async function generateRecipes(prompt: string): Promise<MistralRecipe[]> {
+  try {
+    const response = await mistral.chat({
+      model: "mistral-large-latest",
+      messages: [
+        { role: "system", content: RECIPE_PROMPT },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7
+    });
+
+    const content = response.choices[0].message.content;
+    console.log("Mistral AI response:", content);
+
+    // Remove markdown code block if present
+    const cleanContent = content.replace(/```json\n|\n```/g, '').trim();
+
+    if (!validateRecipeResponse(cleanContent)) {
+      throw new Error("Invalid recipe format received from Mistral AI");
+    }
+
+    return JSON.parse(cleanContent);
+  } catch (error) {
+    logger.error("Error generating recipes:", error);
+    throw error;
+  }
+}
 
 // Search recipes by available ingredients
-export const searchRecipesByIngredients = onRequest(functionConfig, async (request, response) => {
-  await new Promise(resolve => corsHandler(request, response, resolve));
-
+export const searchRecipesByIngredients = onCall<SearchByIngredientsParams>(functionConfig, async (data, context) => {
   try {
     logger.info("Starting searchRecipesByIngredients request");
-    const { searchParams, ingredients } = request.body;
+    const { searchParams, ingredients } = data.data;
     
     if (!Array.isArray(ingredients)) {
       throw new Error("ingredients must be an array of strings");
@@ -26,256 +179,122 @@ export const searchRecipesByIngredients = onRequest(functionConfig, async (reque
 
     logger.info("Searching recipes with ingredients:", ingredients);
     
-    // First search recipes with standard params
-    const qb = new MarmitonQueryBuilder();
+    let prompt = `Generate recipes that can be made with these ingredients: ${ingredients.join(", ")}.\n`;
+    
     if (searchParams) {
-      if (searchParams.title) qb.withTitleContaining(searchParams.title);
-      if (searchParams.maxTime) qb.takingLessThan(searchParams.maxTime);
-      if (searchParams.difficulty) qb.withDifficulty(searchParams.difficulty);
-      if (searchParams.price) qb.withPrice(searchParams.price);
-      if (searchParams.withoutOven) qb.withoutOven();
+      if (searchParams.title) prompt += `The recipe name should contain: ${searchParams.title}\n`;
+      if (searchParams.maxTime) prompt += `The preparation time should be less than ${searchParams.maxTime} minutes.\n`;
+      if (searchParams.difficulty) prompt += `The difficulty should be ${searchParams.difficulty}.\n`;
+      if (searchParams.withoutOven) prompt += `Do not use an oven in the recipe.\n`;
     }
 
-    logger.info("Executing Marmiton query for recipes with ingredients");
-    const query = qb.build();
-    const recipes: Recipe[] = await searchRecipes(query, {
-      limit: searchParams?.limit || 12
-    });
+    const recipes = await generateRecipes(prompt);
 
     // Process recipes with ingredients
-    const processedRecipes = processRecipesByIngredients(recipes, ingredients);
+    const processedRecipes = recipes.map(recipe => {
+      const matchingIngredients = recipe.ingredients.filter(ing => 
+        ingredients.map(i => i.toLowerCase()).includes(ing.toLowerCase())
+      );
 
-    logger.info(`Found ${processedRecipes.length} processed recipes`);
-    response.json({
+      return {
+        ...recipe,
+        matchingIngredients,
+        matchingIngredientsCount: matchingIngredients.length,
+        canBeMadeWithIngredients: recipe.ingredients.every(ing =>
+          ingredients.map(i => i.toLowerCase()).includes(ing.toLowerCase())
+        )
+      };
+    });
+
+    logger.info(`Generated ${processedRecipes.length} recipes`);
+    return {
       success: true,
       data: processedRecipes
-    });
+    };
   } catch (error) {
     logger.error("Error searching recipes by ingredients:", error);
-    response.status(500).json({
-      success: false,
-      error: "Failed to search recipes by ingredients",
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
+    throw new Error(error instanceof Error ? error.message : "Failed to search recipes by ingredients");
   }
 });
 
-// Interfaces for request types
-interface SearchParams {
-  title?: string;
-  maxTime?: number;
-  difficulty?: RECIPE_DIFFICULTY;
-  price?: RECIPE_PRICE;
-  withoutOven?: boolean;
-  limit?: number;
-}
+// Search recipes with filters
+export const searchRecipes = onCall<SearchFiltersParams>(functionConfig, async (data, context) => {
+  try {
+    const params = data.data;
+    logger.info("Starting recipe search request with params:", JSON.stringify(params));
 
-interface ProcessedRecipe extends Recipe {
-  matchingIngredients: string[];
-  matchingIngredientsCount: number;
-  canBeMadeWithIngredients: boolean;
-}
+    let prompt = "Generate recipes";
+    if (params.title) prompt += ` with names containing "${params.title}"`;
+    if (params.maxTime) prompt += ` that take less than ${params.maxTime} minutes to prepare`;
+    if (params.difficulty) prompt += ` with difficulty level ${params.difficulty}`;
+    if (params.withoutOven) prompt += ` that don't require an oven`;
 
-/**
- * Processes recipes based on available ingredients.
- * @param recipes - Array of recipes to process
- * @param availableIngredients - Array of ingredients available to cook with
- * @returns Processed recipes with matching information
- */
-function processRecipesByIngredients(recipes: Recipe[], availableIngredients: string[]): ProcessedRecipe[] {
-  // Convert available ingredients to lowercase for case-insensitive comparison
-  const normalizedAvailableIngredients = availableIngredients.map(ing => ing.toLowerCase());
+    const recipes = await generateRecipes(prompt);
 
-  // Process each recipe
-  const processedRecipes: ProcessedRecipe[] = recipes.map(recipe => {
-    // Convert recipe ingredients to lowercase for comparison
-    const recipeIngredients = recipe.ingredients.map(ing => ing.toLowerCase());
-    
-    // Find matching ingredients
-    const matchingIngredients = recipe.ingredients.filter(ing => 
-      normalizedAvailableIngredients.includes(ing.toLowerCase())
-    );
-
-    // Calculate if recipe can be made with available ingredients
-    const canBeMadeWithIngredients = recipeIngredients.every(ing =>
-      normalizedAvailableIngredients.includes(ing)
-    );
-
+    logger.info(`Generated ${recipes.length} recipes`);
     return {
-      ...recipe,
-      matchingIngredients,
-      matchingIngredientsCount: matchingIngredients.length,
-      canBeMadeWithIngredients
-    };
-  });
-
-  // Sort recipes by canBeMadeWithIngredients (true first) and then by matchingIngredientsCount
-  return processedRecipes.sort((a, b) => {
-    if (a.canBeMadeWithIngredients !== b.canBeMadeWithIngredients) {
-      return a.canBeMadeWithIngredients ? -1 : 1;
-    }
-    return b.matchingIngredientsCount - a.matchingIngredientsCount;
-  });
-}
-
-// Search recipes from Marmiton with filters
-export const searchMarmitonRecipes = onRequest(functionConfig, async (request, response) => {
-  await new Promise(resolve => corsHandler(request, response, resolve));
-
-    try {
-        const params: SearchParams = request.body;
-        logger.info("Starting searchMarmitonRecipes request with params:", JSON.stringify(params));
-
-    const qb = new MarmitonQueryBuilder();
-
-    // Apply filters based on params
-    if (params.title) {
-      qb.withTitleContaining(params.title);
-    }
-    if (params.maxTime) {
-      qb.takingLessThan(params.maxTime);
-    }
-    if (params.difficulty) {
-      qb.withDifficulty(params.difficulty);
-    }
-    if (params.price) {
-      qb.withPrice(params.price);
-    }
-    if (params.withoutOven) {
-      qb.withoutOven();
-    }
-
-    logger.info("Executing Marmiton query for filtered recipes");
-    // Build and execute query
-    const query = qb.build();
-    const recipes: Recipe[] = await searchRecipes(query, {
-      limit: params.limit || 12
-    });
-
-    logger.info(`Found ${recipes.length} recipes`);
-    response.json({
       success: true,
       data: recipes
-    });
-    } catch (error) {
-        logger.error("Error searching recipes:", error);
-        
-        // Check for specific error types
-        if (error instanceof Error) {
-            if (error.message.includes("NOT_FOUND")) {
-                response.status(404).json({
-                    success: false,
-                    error: "Recipe search endpoint not found",
-                    details: error.message
-                });
-            } else if (error.message.includes("TIMEOUT")) {
-                response.status(408).json({
-                    success: false,
-                    error: "Search request timed out",
-                    details: error.message
-                });
-            } else {
-                response.status(500).json({
-                    success: false,
-                    error: "Failed to search recipes",
-                    details: error.message
-                });
-            }
-        } else {
-            response.status(500).json({
-                success: false,
-                error: "An unknown error occurred",
-                details: "No error details available"
-            });
-        }
-        
-        logger.error("Full error details:", {
-            error: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : "No stack trace"
-        });
-    }
+    };
+  } catch (error) {
+    logger.error("Error searching recipes:", error);
+    throw new Error(error instanceof Error ? error.message : "Failed to search recipes");
+  }
 });
 
-// Get filtered recipes by difficulty
-export const getEasyRecipes = onRequest(functionConfig, async (request, response) => {
-  await new Promise(resolve => corsHandler(request, response, resolve));
-  
+// Get easy recipes
+export const getEasyRecipes = onCall<void>(functionConfig, async (data, context) => {
   try {
     logger.info("Starting getEasyRecipes request");
-    const qb = new MarmitonQueryBuilder();
-    qb.withDifficulty(RECIPE_DIFFICULTY.EASY);
+    const prompt = "Generate easy recipes with difficulty level 1 that are perfect for beginners.";
     
-    const query = qb.build();
-    logger.info("Executing Marmiton query for easy recipes");
-    const recipes: Recipe[] = await searchRecipes(query, { limit: 12 });
+    const recipes = await generateRecipes(prompt);
 
-    logger.info(`Found ${recipes.length} easy recipes`);
-    response.json({
+    logger.info(`Generated ${recipes.length} easy recipes`);
+    return {
       success: true,
       data: recipes
-    });
+    };
   } catch (error) {
     logger.error("Error fetching easy recipes:", error);
-    response.status(500).json({
-      success: false,
-      error: "Failed to fetch easy recipes",
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
+    throw new Error(error instanceof Error ? error.message : "Failed to fetch easy recipes");
   }
 });
 
 // Get quick recipes (under 30 minutes)
-export const getQuickRecipes = onRequest(functionConfig, async (request, response) => {
-  await new Promise(resolve => corsHandler(request, response, resolve));
-  
+export const getQuickRecipes = onCall<void>(functionConfig, async (data, context) => {
   try {
     logger.info("Starting getQuickRecipes request");
-    const qb = new MarmitonQueryBuilder();
-    qb.takingLessThan(30); // 30 minutes or less
+    const prompt = "Generate quick recipes that can be prepared in 30 minutes or less.";
     
-    const query = qb.build();
-    logger.info("Executing Marmiton query for quick recipes");
-    const recipes: Recipe[] = await searchRecipes(query, { limit: 12 });
+    const recipes = await generateRecipes(prompt);
 
-    logger.info(`Found ${recipes.length} quick recipes`);
-    response.json({
+    logger.info(`Generated ${recipes.length} quick recipes`);
+    return {
       success: true,
       data: recipes
-    });
+    };
   } catch (error) {
     logger.error("Error fetching quick recipes:", error);
-    response.status(500).json({
-      success: false,
-      error: "Failed to fetch quick recipes",
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
+    throw new Error(error instanceof Error ? error.message : "Failed to fetch quick recipes");
   }
 });
 
 // Get budget-friendly recipes
-export const getBudgetRecipes = onRequest(functionConfig, async (request, response) => {
-  await new Promise(resolve => corsHandler(request, response, resolve));
-  
+export const getBudgetRecipes = onCall<void>(functionConfig, async (data, context) => {
   try {
     logger.info("Starting getBudgetRecipes request");
-    const qb = new MarmitonQueryBuilder();
-    qb.withPrice(RECIPE_PRICE.CHEAP);
+    const prompt = "Generate budget-friendly recipes using affordable ingredients with low estimated cost.";
     
-    const query = qb.build();
-    logger.info("Executing Marmiton query for budget recipes");
-    const recipes: Recipe[] = await searchRecipes(query, { limit: 12 });
+    const recipes = await generateRecipes(prompt);
 
-    logger.info(`Found ${recipes.length} budget recipes`);
-    response.json({
+    logger.info(`Generated ${recipes.length} budget recipes`);
+    return {
       success: true,
       data: recipes
-    });
+    };
   } catch (error) {
     logger.error("Error fetching budget recipes:", error);
-    response.status(500).json({
-      success: false,
-      error: "Failed to fetch budget recipes",
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
+    throw new Error(error instanceof Error ? error.message : "Failed to fetch budget recipes");
   }
 });
