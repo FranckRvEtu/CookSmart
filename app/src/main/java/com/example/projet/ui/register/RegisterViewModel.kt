@@ -4,11 +4,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.projet.data.model.UserData
+import com.example.projet.data.repositories.UserRepository
+import com.example.projet.data.repositories.UserRepositoryImpl
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
 
-class RegisterViewModel: ViewModel() {
+class RegisterViewModel(private val userRepository: UserRepository = UserRepositoryImpl()): ViewModel() {
     var firstName by mutableStateOf("")
         private set
     var lastName by mutableStateOf("")
@@ -59,33 +65,35 @@ class RegisterViewModel: ViewModel() {
     fun onVisibilityChange(newVisibility: Boolean){
         isPasswordVisible = newVisibility
     }
-    //TODO : Fonction pour l'inscription
+
     fun registerUser(
         onSuccess : () -> Unit,
         onError : (String) -> Unit
     ){
-        val auth = FirebaseAuth.getInstance()
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnSuccessListener{
-                val user = auth.currentUser
-                val userData = hashMapOf(
-                    "firstname" to firstName,
-                    "lastname" to lastName,
-                    "pfp" to "",
-                    "regime" to dietType,
-                    "allergens" to selectedAllergies,
-                    "ingredients" to listOf<String>()
-                )
-                db.collection("users").add(userData)
-                    .addOnCompleteListener{
-                        onSuccess()
-                    }
-                    .addOnFailureListener { e ->
-                        onError("Erreur lors de l'enregistrement de l'utilisateur : ${e.message}")
-                    }
-            }
-            .addOnFailureListener {e->
-                onError("Erreur lors de l'enregistrement de l'utilisateur : ${e.message}")
-            }
+        if (email.isBlank() && password.isBlank() && firstName.isBlank() && lastName.isBlank()){
+            onError("Veuillez remplir tous les champs")
+            return
         }
+         val userData = UserData(
+             email = email,
+             password = password,
+             firstName = firstName,
+             lastName = lastName,
+             profilePictureUrl = "",
+             dietType = dietType,
+             allergies = selectedAllergies,
+             ingredients = listOf()
+         )
+        viewModelScope.launch {
+            userRepository.registerUser(
+                userData,
+                onSuccess = {
+                    onSuccess()
+                },
+                onError = { errorMessage ->
+                    onError(errorMessage)
+                }
+            )
+        }
+    }
 }
