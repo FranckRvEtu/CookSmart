@@ -55,6 +55,18 @@ android {
 }
 
 dependencies {
+    // ML Kit Barcode Scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    
+    // CameraX
+    val camerax_version = "1.3.1"
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+    
+    // Accompanist Permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 
     // Kotlin Android Core
     implementation(libs.androidx.core.ktx)

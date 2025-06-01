@@ -2,6 +2,7 @@ import { onCall, HttpsOptions } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import MistralClient from "@mistralai/mistralai";
 import * as dotenv from 'dotenv';
+import axios from 'axios';
 
 // Load environment variables
 dotenv.config();
@@ -296,5 +297,69 @@ export const getBudgetRecipes = onCall<void>(functionConfig, async (data, contex
   } catch (error) {
     logger.error("Error fetching budget recipes:", error);
     throw new Error(error instanceof Error ? error.message : "Failed to fetch budget recipes");
+  }
+});
+
+// Type definition for barcode parameter
+interface BarcodeParams {
+  barcode: string;
+}
+
+// Type definition for OpenFoodFacts API product response
+interface OpenFoodFactsProduct {
+  status: number;
+  product: {
+    product_name: string;
+    categories_tags: string[];
+    quantity: string;
+    nutriments: Record<string, any>;
+    ingredients_text: string;
+    expiration_date?: string;
+    image_url?: string;
+  };
+}
+
+// Get ingredient information by barcode using OpenFoodFacts API v2
+export const getIngredientByBarcode = onCall<BarcodeParams>(functionConfig, async (data, context) => {
+  try {
+    logger.info("Starting getIngredientByBarcode request");
+    const { barcode } = data.data;
+
+    if (!barcode) {
+      throw new Error("Barcode is required");
+    }
+
+    logger.info(`Fetching data for barcode: ${barcode}`);
+    
+    const response = await axios.get<OpenFoodFactsProduct>(
+      `https://world.openfoodfacts.org/api/v2/product/${barcode}`
+    );
+
+    if (response.data.status === 0) {
+      throw new Error("Product not found");
+    }
+
+    const product = response.data.product;
+
+    logger.info(`Successfully retrieved product: ${product.product_name}`);
+
+    return {
+      success: true,
+      data: {
+        name: product.product_name,
+        category: product.categories_tags[0]?.replace('en:', '') || 'Other',
+        quantity: product.quantity,
+        nutrients: product.nutriments,
+        ingredients: product.ingredients_text,
+        expiryDate: product.expiration_date,
+        image: product.image_url,
+        confidence: 100, // API provides verified data
+        detectedQuantity: product.quantity,
+        detectedUnit: product.quantity?.match(/[a-zA-Z]+/)?.[0] || 'unit',
+      }
+    };
+  } catch (error) {
+    logger.error("Error fetching ingredient data:", error);
+    throw new Error(error instanceof Error ? error.message : "Failed to fetch ingredient data");
   }
 });
