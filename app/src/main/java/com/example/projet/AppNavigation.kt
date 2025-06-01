@@ -14,6 +14,7 @@ import com.example.projet.ui.register.RegisterStep1Screen
 import com.example.projet.ui.register.RegisterStep2Screen
 import com.example.projet.ui.register.RegisterStep3Screen
 import com.example.project.ui.home.HomeScreen
+import com.example.projet.ui.home.HomeScreenViewModel
 import com.example.projet.ui.profile.ProfileScreen
 import com.example.projet.ui.ingredientlist.IngredientScannerScreen
 import com.example.projet.ui.recipedetail.RecipeDetailScreen
@@ -23,10 +24,30 @@ import com.example.projet.ui.register.RegisterViewModel
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") {
-            LoginScreen(navController)
+    NavHost(navController = navController, startDestination = "auth") {
+        navigation(
+            startDestination = "login",
+            route = "auth"
+        ){
+            composable("login"){backStackEntry ->
+                val parentEntry = remember(backStackEntry){
+                    navController.getBackStackEntry("auth")
+                }
+                val homeScreenViewModel: HomeScreenViewModel = viewModel(parentEntry)
+                LoginScreen(navController, homeScreenViewModel)
+            }
+
+            composable("homeScreen"){backStackEntry ->
+                val parentEntry = remember(backStackEntry){
+                    navController.getBackStackEntry("auth")
+
+                }
+                val homeScreenViewModel: HomeScreenViewModel = viewModel(parentEntry)
+                HomeScreen(navController, homeScreenViewModel)
+            }
         }
+
+
         navigation(
             startDestination = "register_step1",
             route = "register"
@@ -54,9 +75,6 @@ fun AppNavigation() {
                 val registerViewModel: RegisterViewModel = viewModel(parentEntry)
                 RegisterStep3Screen(navController, registerViewModel)
             }
-        }
-        composable("homescreen") {
-            HomeScreen(navController = navController)
         }
         composable("profile") {
             ProfileScreen(navController = navController)
