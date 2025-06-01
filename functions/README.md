@@ -1,150 +1,93 @@
-# Firebase Functions for CookSmart
+# CookSmart Cloud Functions
 
-This directory contains Firebase Cloud Functions that provide recipe search capabilities using the Marmiton API.
+## Configuration
 
-## Available Functions
+Environment variables required:
+- `MISTRAL_API_KEY`: Your Mistral AI API key
 
-### `searchMarmitonRecipes`
+## API Endpoints
 
-Main search function that allows searching recipes with various filters.
+All recipe endpoints return recipes in the following JSON format:
 
-**Parameters:**
 ```typescript
-{
-  title?: string;           // Search by recipe title
-  maxTime?: number;         // Maximum cooking time in minutes
-  difficulty?: RECIPE_DIFFICULTY; // Recipe difficulty level
-  price?: RECIPE_PRICE;     // Recipe price range
-  withoutOven?: boolean;    // Filter recipes that don't require an oven
-  limit?: number;           // Number of results (default: 12)
+interface Recipe {
+  id: string;           // Randomly generated ID
+  difficulty: number;   // 1-4 scale
+  images: string;       // Base64 encoded image
+  ingredients: string[];
+  name: string;
+  people: number;       // Number of servings
+  preptime: number;     // Preparation time in minutes
+  price: number;        // Estimated price
+  steps: string[];      // Cooking instructions
+  tags: string[];       // Recipe tags (e.g., "Easy", "Quick", "Vegetarian")
+  type: string;         // Recipe type (e.g., "DESSERT", "DINNER")
+  withOven: boolean;    // Whether the recipe requires an oven
 }
 ```
 
-### `searchRecipesByIngredients`
+### Available Endpoints
 
-Search and process recipes based on available ingredients. Returns recipes sorted by matching ingredients and possibility to make the recipe.
+1. `searchRecipesByIngredients`
+   - Finds recipes that can be made with specified ingredients
+   - Body:
+     ```typescript
+     {
+       ingredients: string[];     // List of available ingredients
+       searchParams?: {          // Optional search parameters
+         title?: string;         // Recipe title filter
+         maxTime?: number;       // Maximum preparation time
+         difficulty?: number;     // Difficulty level (1-4)
+         withoutOven?: boolean;  // Whether to exclude recipes requiring an oven
+       }
+     }
+     ```
+   - Returns an array of recipes with additional fields:
+     - `matchingIngredients`: Array of ingredients from your list that are used
+     - `matchingIngredientsCount`: Number of matching ingredients
+     - `canBeMadeWithIngredients`: Whether all required ingredients are available
 
-**Parameters:**
-```typescript
-{
-  ingredients: string[];    // List of available ingredients
-  searchParams?: {         // Optional search parameters
-    title?: string;
-    maxTime?: number;
-    difficulty?: RECIPE_DIFFICULTY;
-    price?: RECIPE_PRICE;
-    withoutOven?: boolean;
-    limit?: number;
-  }
-}
-```
+2. `searchRecipes`
+   - Searches for recipes based on criteria
+   - Body:
+     ```typescript
+     {
+       title?: string;         // Recipe title filter
+       maxTime?: number;       // Maximum preparation time
+       difficulty?: number;    // Difficulty level (1-4)
+       withoutOven?: boolean; // Whether to exclude recipes requiring an oven
+     }
+     ```
 
-**Returns ProcessedRecipe objects that extend Recipe with:**
-```typescript
-{
-  matchingIngredients: string[];      // List of ingredients you have
-  matchingIngredientsCount: number;   // Number of ingredients you have
-  canBeMadeWithIngredients: boolean;  // True if you have all needed ingredients
-}
-```
+3. `getEasyRecipes`
+   - Returns beginner-friendly recipes (difficulty level 1)
+   - No request body needed
 
-The results are sorted by:
-1. Recipes that can be made with available ingredients first
-2. Number of matching ingredients (highest to lowest)
+4. `getQuickRecipes`
+   - Returns recipes that can be prepared in 30 minutes or less
+   - No request body needed
 
-### `getEasyRecipes`
-
-Returns a list of easy-to-make recipes.
-
-- No parameters required
-- Returns up to 12 recipes by default
-- Filters by RECIPE_DIFFICULTY.EASY
-
-### `getQuickRecipes`
-
-Returns a list of quick recipes that take 30 minutes or less.
-
-- No parameters required
-- Returns up to 12 recipes by default
-- Filters recipes that take less than 30 minutes
-
-### `getBudgetRecipes`
-
-Returns a list of budget-friendly recipes.
-
-- No parameters required
-- Returns up to 12 recipes by default
-- Filters by RECIPE_PRICE.CHEAP
+5. `getBudgetRecipes`
+   - Returns affordable recipes with low-cost ingredients
+   - No request body needed
 
 ## Response Format
 
-All functions return responses in the following format:
+All endpoints return responses in the following format:
 
 ```typescript
 {
   success: boolean;
-  data?: Recipe[] | ProcessedRecipe[];  // Array of recipes if successful
-  error?: string;   // Error message if failed
-  details?: string; // Detailed error information if available
-}
-```
-
-## Recipe Object Structure
-
-```typescript
-interface Recipe {
-  author: string;
-  ingredients: string[];
-  tags: string[];
-  steps: string[];
-  people: number;
-  budget: number;      // 1: Cheap, 2: Medium, 3: Expensive
-  difficulty: number;  // 1: Very Easy, 2: Easy, 3: Medium, 4: Hard
-  prepTime: number;    // In minutes
-  totalTime: number;   // In minutes
+  data?: Recipe[];
+  error?: string;
+  details?: string;
 }
 ```
 
 ## Error Handling
 
-All functions include proper error handling and will return:
-- HTTP 200 with `success: true` and data for successful requests
-- HTTP 500 with `success: false` and error details for failed requests
-
-## CORS Support
-
-All endpoints support CORS and can be accessed from the mobile app.
-
-## Usage Examples
-
-```typescript
-// Example: Search for quick vegetarian recipes
-const response = await fetch('your-firebase-url/searchMarmitonRecipes', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    title: 'vegetarien',
-    maxTime: 30,
-    limit: 5
-  })
-});
-
-// Example: Search recipes based on available ingredients
-const response = await fetch('your-firebase-url/searchRecipesByIngredients', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    ingredients: ['tomato', 'pasta', 'olive oil'],
-    searchParams: {
-      maxTime: 30,  // Optional: additional search parameters
-      limit: 5
-    }
-  })
-});
-
-const data = await response.json();
-// Handle the response...
+The API may return the following status codes:
+- 200: Success
+- 400: Bad Request (invalid parameters)
+- 500: Internal Server Error
+- 408: Request Timeout

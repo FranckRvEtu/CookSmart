@@ -1,5 +1,6 @@
 package com.example.projet.ui.register
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -439,11 +440,17 @@ fun RegisterStep3Screen(navController: NavHostController, registerViewModel: Reg
 
         Button(
             onClick = {
-                /* TODO: Logique d'enregistrement */
-                // Après enregistrement réussi
-                navController.navigate("login") {
-                    popUpTo("login") { inclusive = true }
-                }
+                registerViewModel.registerUser(
+                    onSuccess = {
+                        navController.navigate("homescreen") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    },
+                    onError = { error ->
+                        Log.e("REGISTER", error)
+                    }
+                )
+
             },
             modifier = Modifier
                 .fillMaxWidth()

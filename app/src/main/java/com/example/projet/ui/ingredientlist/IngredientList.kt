@@ -1,5 +1,11 @@
 package com.example.projet.ui.ingredientlist
 
+import android.content.Context
+import android.util.Log
+import android.view.ViewGroup
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +16,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.PermissionState
+import java.util.UUID
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +38,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,6 +141,7 @@ fun IngredientScannerScreen(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ScannerTab(
     isScanning: Boolean,
@@ -169,12 +189,28 @@ fun ScannerTab(
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CameraScannerSection(
     isScanning: Boolean,
     onScanToggle: () -> Unit,
     onIngredientScanned: (ScannedIngredient) -> Unit
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val viewModel: IngredientListViewModel = viewModel()
+    val barcodeState by viewModel.barcodeState.collectAsState()
+    
+    val cameraPermissionState = rememberPermissionState(
+        android.Manifest.permission.CAMERA
+    )
+    
+    LaunchedEffect(cameraPermissionState.status.isGranted, isScanning) {
+        if (cameraPermissionState.status.isGranted && isScanning) {
+            viewModel.startScanning()
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -188,89 +224,123 @@ fun CameraScannerSection(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Camera View Placeholder
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(300.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isScanning) Color.Black.copy(alpha = 0.8f)
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
                     .border(
                         width = 2.dp,
                         color = if (isScanning) MaterialTheme.colorScheme.secondary else Color.Transparent,
                         shape = RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
+                    )
             ) {
-                if (isScanning) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Caméra active",
-                            modifier = Modifier.size(48.dp),
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Scan en cours...",
-                            color = Color.White,
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                when {
+                    !cameraPermissionState.status.isGranted -> {
+                        PermissionRequest(cameraPermissionState)
                     }
-                } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Caméra",
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Pointez votre caméra vers\nles ingrédients",
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    isScanning -> {
+                        CameraPreview(
+                            context = context,
+                            lifecycleOwner = lifecycleOwner
+                        ) { barcode ->
+                            viewModel.processBarcode(barcode)
+                        }
+                        
+                        // Scanning overlay
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.3f))
+                        ) {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CropFree,
+                                    contentDescription = "Scanner zone",
+                                    modifier = Modifier.size(100.dp),
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                if (barcodeState is BarcodeState.Loading) {
+                                    CircularProgressIndicator(
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            }
+                        }
                     }
+                    else -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Caméra",
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Pointez votre caméra vers\nles ingrédients",
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                // Display scanned product result
+                if (barcodeState is BarcodeState.Success) {
+                    val product = (barcodeState as BarcodeState.Success).product
+                    ScannedProductCard(
+                        product = product,
+                        onDismiss = {
+                            viewModel.resetState()
+                            onScanToggle()
+                        },
+                        onAdd = {
+                            onIngredientScanned(
+                                ScannedIngredient(
+                                    id = UUID.randomUUID().toString(),
+                                    name = product.name,
+                                    category = product.category,
+                                    confidence = product.confidence,
+                                    detectedQuantity = product.detectedQuantity,
+                                    detectedUnit = product.detectedUnit,
+                                    estimatedExpiry = product.expiryDate
+                                )
+                            )
+                            viewModel.resetState()
+                            onScanToggle()
+                        }
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Scan Button
+            if (barcodeState is BarcodeState.Error) {
+                Text(
+                    text = (barcodeState as BarcodeState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Button(
                 onClick = {
-                    onScanToggle()
-                    // Simulate scanning result after 3 seconds
-                    if (!isScanning) {
-                        // In real app, this would be handled by camera callback
-                        kotlinx.coroutines.GlobalScope.launch {
-                            kotlinx.coroutines.delay(3000)
-                            onIngredientScanned(
-                                ScannedIngredient(
-                                    id = java.util.UUID.randomUUID().toString(),
-                                    name = sampleScannedIngredients.random().name,
-                                    category = sampleScannedIngredients.random().category,
-                                    confidence = (85..98).random(),
-                                    detectedQuantity = listOf("1", "2", "500g", "1kg", "250ml").random(),
-                                    detectedUnit = listOf("pièce", "g", "ml", "kg").random(),
-                                    estimatedExpiry = "Dans 5 jours"
-                                )
-                            )
-                        }
+                    if (isScanning) {
+                        viewModel.stopScanning()
                     }
+                    onScanToggle()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -290,6 +360,146 @@ fun CameraScannerSection(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+private fun PermissionRequest(
+    cameraPermissionState: PermissionState
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.CameraAlt,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Permission d'accès à la caméra requise",
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = { cameraPermissionState.launchPermissionRequest() }
+        ) {
+            Text("Autoriser")
+        }
+    }
+}
+
+@Composable
+private fun CameraPreview(
+    context: Context,
+    lifecycleOwner: LifecycleOwner,
+    onBarcodeDetected: (String) -> Unit
+) {
+    AndroidView(
+        factory = { ctx ->
+            PreviewView(ctx).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    ) { previewView ->
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+            
+            val preview = Preview.Builder().build()
+            preview.setSurfaceProvider(previewView.surfaceProvider)
+            
+            val imageAnalysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+            
+            imageAnalysis.setAnalyzer(
+                ContextCompat.getMainExecutor(context),
+                BarcodeAnalyzer(onBarcodeDetected)
+            )
+            
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    imageAnalysis
+                )
+            } catch (e: Exception) {
+                Log.e("CameraPreview", "Use case binding failed", e)
+            }
+        }, ContextCompat.getMainExecutor(context))
+    }
+}
+
+@Composable
+private fun ScannedProductCard(
+    product: ScannedProduct,
+    onDismiss: () -> Unit,
+    onAdd: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = product.category,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (product.quantity != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Quantité: ${product.quantity}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Ignorer")
+                    }
+                    Button(onClick = onAdd) {
+                        Text("Ajouter")
+                    }
+                }
             }
         }
     }

@@ -1,47 +1,52 @@
 # CookSmart
 
-## Fonctionnalités d'Authentification
+An intelligent cooking assistant application.
 
-### Écran de Connexion
-- Interface intuitive avec champs email et mot de passe
-- Validation du format d'email en temps réel
-- Option "Se souvenir de moi"
-- Bouton de connexion avec état de chargement
-- Affichage des messages d'erreur
-- Visibilité du mot de passe configurable
-- Navigation vers l'inscription
+## Features
 
-### Processus d'Inscription en 3 Étapes
+### Search Functionality
+- Search for recipes by name or ingredients
+- Advanced filtering options:
+  - Time: Filter recipes by preparation time
+  - Difficulty: Filter by recipe difficulty level
+  - Price: Filter recipes by estimated cost
+  - Without Oven: Toggle to show only recipes that don't require an oven
+- AI-Powered Allergen Detection:
+  - Automatic analysis of recipe ingredients using Firebase AI with Gemini
+  - Real-time identification of common allergens (nuts, dairy, eggs, soy, wheat, fish, shellfish)
+  - Visual indicators for recipes containing allergens
+- Real-time search results with Material3 UI components
+- Responsive grid layout for search results
+- Navigation from home screen search bar
 
-#### Étape 1 : Profil
-- Saisie du prénom et nom
-- Validation du format d'email
-- Progression visuelle des étapes
-- Navigation intuitive
+### Recipe Management
+- Browse popular recipes
+- View recipe details including ingredients and steps
+- AI cooking assistant integration
+- Save favorite recipes
 
-#### Étape 2 : Préférences Alimentaires
-- Sélection des allergènes avec système de recherche
-- Interface avec chips pour une meilleure UX
-- Choix du régime alimentaire
-- Liste exhaustive d'options alimentaires
+### User Profile
+- Personalized recipe recommendations
+- Save dietary preferences
+- Track cooking history
 
-#### Étape 3 : Sécurité
-- Création de mot de passe sécurisé
-- Indicateurs de force du mot de passe
-- Validation des critères en temps réel :
-  - Minimum 8 caractères
-  - Au moins un chiffre
-  - Au moins une majuscule
-  - Au moins une minuscule
-  - Au moins un caractère spécial
-- Confirmation du mot de passe
-- Récapitulatif complet des informations
+## Technical Details
 
-### Caractéristiques Techniques
-- Implémentation avec Jetpack Compose
-- Architecture MVVM
-- Navigation fluide entre les écrans
-- Gestion d'état avec MutableState
-- Validation des données en temps réel
-- Animations et transitions fluides
-- Interface Material Design 3
+### AI and Machine Learning
+- Firebase AI integration with Gemini 2.0 Flash Lite model
+- Natural language processing for ingredient analysis
+- Real-time allergen detection in recipe ingredients
+- Intelligent ingredient classification and processing
+
+### Cloud Functions
+- `searchMarmitonRecipes`: Search recipes with filters
+- `searchRecipesByIngredients`: Find recipes based on available ingredients
+- `getEasyRecipes`: Get recipes filtered by difficulty
+- `getQuickRecipes`: Get recipes under 30 minutes
+- `getBudgetRecipes`: Get cost-effective recipes
+
+### UI Components
+- Material3 design system
+- Jetpack Compose for modern UI development
+- Responsive layouts for different screen sizes
+- Dark/light theme support

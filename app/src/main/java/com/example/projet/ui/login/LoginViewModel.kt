@@ -6,11 +6,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.projet.data.model.UserData
+import com.example.projet.data.repositories.UserRepository
+import com.example.projet.data.repositories.UserRepositoryImpl
+import com.example.projet.data.service.FirebaseSource
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
-class LoginViewModel : ViewModel(){
+class LoginViewModel(private val userRepository : UserRepository = UserRepositoryImpl()) : ViewModel(){
     var email by mutableStateOf("")
         private set
     var password by mutableStateOf("")
@@ -48,21 +54,27 @@ class LoginViewModel : ViewModel(){
         errorMessage = newMessage
     }
 
-
-
-    fun login(){
+    fun login2(
+        onSuccess : (UserData?) -> Unit,
+        onFail : () -> Unit
+    ){
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful){
-                    Log.d("LOGIN", "OK")
-                    isLoggedIn = true
+            .addOnSuccessListener {
+                Log.d("LOGIN", "OK")
+                isLoggedIn = true
+                val currentUser = FirebaseSource.auth.currentUser
+                var userData : UserData? = null
+                viewModelScope.launch {
+                   userData = userRepository.getUserById(currentUser!!.uid)
+                }
+                onSuccess(userData)
+            }
 
-                }
-                else{
-                    Log.d("LOGIN", "KO")
-                    errorMessage = "Erreur d'authentification"
-                }
+            .addOnFailureListener{
+                Log.d("LOGIN", "KO")
+                errorMessage = "Erreur d'authentification"
+                onFail()
             }
     }
-
 }
+
