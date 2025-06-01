@@ -322,17 +322,17 @@ interface OpenFoodFactsProduct {
 // Get ingredient information by barcode using OpenFoodFacts API v2
 export const getIngredientByBarcode = onCall<BarcodeParams>(functionConfig, async (data, context) => {
   try {
-    logger.info("Starting getIngredientByBarcode request");
+    console.log("Starting getIngredientByBarcode request");
     const { barcode } = data.data;
 
     if (!barcode) {
       throw new Error("Barcode is required");
     }
 
-    logger.info(`Fetching data for barcode: ${barcode}`);
+    console.log(`Fetching data for barcode: ${barcode}`);
     
     const response = await axios.get<OpenFoodFactsProduct>(
-      `https://world.openfoodfacts.org/api/v2/product/${barcode}`
+      `https://world.openfoodfacts.org/api/v2/product/${barcode}?fields=product_name,categories_tags,quantity,nutriments,allergens_tags,allergens_imported`
     );
 
     if (response.data.status === 0) {
@@ -341,25 +341,29 @@ export const getIngredientByBarcode = onCall<BarcodeParams>(functionConfig, asyn
 
     const product = response.data.product;
 
-    logger.info(`Successfully retrieved product: ${product.product_name}`);
+    console.log(`Successfully retrieved product: ${product.product_name}`);
+
+    const responseData = {
+      name: product.product_name,
+      category: product.categories_tags[0]?.replace('en:', '') || 'Other',
+      quantity: product.quantity,
+      nutrients: product.nutriments || {},
+      ingredients: product.ingredients_text || '',
+      expiryDate: product.expiration_date,
+      image: product.image_url,
+      confidence: 100, // API provides verified data
+      detectedQuantity: product.quantity?.match(/[0-9.]+/)?.[0] || '',
+      detectedUnit: product.quantity?.match(/[a-zA-Z]+/)?.[0] || 'unit',
+    };
+
+    console.log('Sending response:', { success: true, data: responseData });
 
     return {
       success: true,
-      data: {
-        name: product.product_name,
-        category: product.categories_tags[0]?.replace('en:', '') || 'Other',
-        quantity: product.quantity,
-        nutrients: product.nutriments,
-        ingredients: product.ingredients_text,
-        expiryDate: product.expiration_date,
-        image: product.image_url,
-        confidence: 100, // API provides verified data
-        detectedQuantity: product.quantity,
-        detectedUnit: product.quantity?.match(/[a-zA-Z]+/)?.[0] || 'unit',
-      }
+      data: responseData
     };
   } catch (error) {
-    logger.error("Error fetching ingredient data:", error);
+    console.log("Error fetching ingredient data:", error);
     throw new Error(error instanceof Error ? error.message : "Failed to fetch ingredient data");
   }
 });

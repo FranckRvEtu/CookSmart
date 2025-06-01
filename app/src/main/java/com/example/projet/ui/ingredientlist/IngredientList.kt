@@ -3,6 +3,7 @@ package com.example.projet.ui.ingredientlist
 import android.content.Context
 import android.util.Log
 import android.view.ViewGroup
+import androidx.compose.animation.*
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -46,7 +47,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun IngredientScannerScreen(navController: NavController) {
     var isScanning by remember { mutableStateOf(false) }
-    var scannedIngredients by remember { mutableStateOf(listOf<ScannedIngredient>()) }
     var availableIngredients by remember { mutableStateOf(sampleAvailableIngredients.toMutableList()) }
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -106,23 +106,18 @@ fun IngredientScannerScreen(navController: NavController) {
             0 -> ScannerTab(
                 isScanning = isScanning,
                 onScanToggle = { isScanning = !isScanning },
-                scannedIngredients = scannedIngredients,
                 onIngredientScanned = { ingredient ->
-                    scannedIngredients = scannedIngredients + ingredient
-                },
-                onAddToAvailable = { ingredient ->
-                    availableIngredients.add(
-                        AvailableIngredient(
-                            id = (availableIngredients.size + 1).toString(),
-                            name = ingredient.name,
-                            category = ingredient.category,
-                            quantity = ingredient.detectedQuantity ?: "1",
-                            unit = ingredient.detectedUnit ?: "pièce",
-                            expiryDate = ingredient.estimatedExpiry,
-                            isExpiringSoon = false
-                        )
+                    val newIngredient = AvailableIngredient(
+                        id = (availableIngredients.size + 1).toString(),
+                        name = ingredient.name,
+                        category = ingredient.category,
+                        quantity = ingredient.detectedQuantity ?: "1",
+                        unit = ingredient.detectedUnit ?: "pièce",
+                        expiryDate = ingredient.estimatedExpiry,
+                        isExpiringSoon = false
                     )
-                    scannedIngredients = scannedIngredients.filter { it.id != ingredient.id }
+                    Log.d("IngredientScannerScreen", "Adding ingredient to available list: $newIngredient")
+                    availableIngredients.add(newIngredient)
                 }
             )
             1 -> MyIngredientsTab(
@@ -146,44 +141,94 @@ fun IngredientScannerScreen(navController: NavController) {
 fun ScannerTab(
     isScanning: Boolean,
     onScanToggle: () -> Unit,
-    scannedIngredients: List<ScannedIngredient>,
     onIngredientScanned: (ScannedIngredient) -> Unit,
-    onAddToAvailable: (ScannedIngredient) -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    val viewModel: IngredientListViewModel = viewModel()
+    val barcodeState by viewModel.barcodeState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        Log.d("ScannerTab", "Initial barcodeState: $barcodeState")
+    }
+
+    LaunchedEffect(barcodeState) {
+        when (barcodeState) {
+            is BarcodeState.Error -> {
+                Log.e("ScannerTab", "Error state: ${(barcodeState as BarcodeState.Error).message}")
+            }
+            is BarcodeState.Success -> {
+                Log.d("ScannerTab", "Success state with ingredient: ${(barcodeState as BarcodeState.Success).ingredient}")
+            }
+            else -> Log.d("ScannerTab", "State changed to: $barcodeState")
+        }
+    }
+
+    // Track scanned ingredient visibility
+    var isCardVisible by remember { mutableStateOf(false) }
+    var currentIngredient by remember { mutableStateOf<ScannedIngredient?>(null) }
+
+    // Update visibility and current ingredient when barcode state changes
+    LaunchedEffect(barcodeState) {
+        Log.d("ScannerTab", "BarcodeState changed, updating visibility: $barcodeState")
+        when (barcodeState) {
+            is BarcodeState.Success -> {
+                currentIngredient = (barcodeState as BarcodeState.Success).ingredient
+                isCardVisible = true
+                Log.d("ScannerTab", "Showing ingredient card for: ${currentIngredient?.name}")
+            }
+            BarcodeState.Idle -> {
+                isCardVisible = false
+                Log.d("ScannerTab", "Hiding ingredient card")
+            }
+            else -> {}
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize()
     ) {
-        item {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(vertical = 16.dp)
+        ) {
             // Camera Scanner Section
-            CameraScannerSection(
-                isScanning = isScanning,
-                onScanToggle = onScanToggle,
-                onIngredientScanned = onIngredientScanned
-            )
-        }
-
-        item {
-            // Instructions
-            InstructionsCard()
-        }
-
-        if (scannedIngredients.isNotEmpty()) {
             item {
-                Text(
-                    text = "Ingrédients détectés (${scannedIngredients.size})",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                CameraScannerSection(
+                    isScanning = isScanning,
+                    onScanToggle = onScanToggle,
+                    onIngredientScanned = onIngredientScanned
                 )
             }
 
-            items(scannedIngredients) { ingredient ->
-                ScannedIngredientCard(
-                    ingredient = ingredient,
-                    onAddToAvailable = { onAddToAvailable(ingredient) }
-                )
+            // Instructions
+            item {
+                InstructionsCard()
+            }
+
+            // Scanned Ingredient Card with animation
+            item {
+                AnimatedVisibility(
+                    visible = isCardVisible && currentIngredient != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    currentIngredient?.let { ingredient ->
+                        ScannedIngredientCard(
+                            ingredient = ingredient,
+                            onAddToAvailable = { quantity, unit ->
+                                onIngredientScanned(ingredient.copy(
+                                    detectedQuantity = quantity,
+                                    detectedUnit = unit
+                                ))
+                                viewModel.resetState()
+                                onScanToggle()
+                            },
+                            onScanToggle = onScanToggle
+                        )
+                    }
+                }
             }
         }
     }
@@ -204,8 +249,17 @@ fun CameraScannerSection(
     val cameraPermissionState = rememberPermissionState(
         android.Manifest.permission.CAMERA
     )
+
+    LaunchedEffect(Unit) {
+        Log.d("CameraScannerSection", "Initial state - Permission: ${cameraPermissionState.status.isGranted}, Scanning: $isScanning")
+    }
+    
+    LaunchedEffect(barcodeState) {
+        Log.d("CameraScannerSection", "BarcodeState changed to: $barcodeState")
+    }
     
     LaunchedEffect(cameraPermissionState.status.isGranted, isScanning) {
+        Log.d("CameraScannerSection", "Permission/Scanning state changed - Permission: ${cameraPermissionState.status.isGranted}, Scanning: $isScanning")
         if (cameraPermissionState.status.isGranted && isScanning) {
             viewModel.startScanning()
         }
@@ -296,32 +350,7 @@ fun CameraScannerSection(
                     }
                 }
                 
-                // Display scanned product result
-                if (barcodeState is BarcodeState.Success) {
-                    val product = (barcodeState as BarcodeState.Success).product
-                    ScannedProductCard(
-                        product = product,
-                        onDismiss = {
-                            viewModel.resetState()
-                            onScanToggle()
-                        },
-                        onAdd = {
-                            onIngredientScanned(
-                                ScannedIngredient(
-                                    id = UUID.randomUUID().toString(),
-                                    name = product.name,
-                                    category = product.category,
-                                    confidence = product.confidence,
-                                    detectedQuantity = product.detectedQuantity,
-                                    detectedUnit = product.detectedUnit,
-                                    estimatedExpiry = product.expiryDate
-                                )
-                            )
-                            viewModel.resetState()
-                            onScanToggle()
-                        }
-                    )
-                }
+                // Display scanning UI only
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -337,8 +366,12 @@ fun CameraScannerSection(
 
             Button(
                 onClick = {
+                    Log.d("ScannerTab", "Scan button clicked, current scanning state: $isScanning")
                     if (isScanning) {
+                        Log.d("ScannerTab", "Stopping scanning")
                         viewModel.stopScanning()
+                    } else {
+                        Log.d("ScannerTab", "Starting scanning")
                     }
                     onScanToggle()
                 },
@@ -451,61 +484,6 @@ private fun CameraPreview(
 }
 
 @Composable
-private fun ScannedProductCard(
-    product: ScannedProduct,
-    onDismiss: () -> Unit,
-    onAdd: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = product.name,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = product.category,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (product.quantity != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Quantité: ${product.quantity}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Ignorer")
-                    }
-                    Button(onClick = onAdd) {
-                        Text("Ajouter")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun InstructionsCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -552,10 +530,23 @@ fun InstructionsCard() {
 @Composable
 fun ScannedIngredientCard(
     ingredient: ScannedIngredient,
-    onAddToAvailable: () -> Unit
+    onAddToAvailable: (String, String) -> Unit,
+    onScanToggle: () -> Unit
 ) {
+    val viewModel: IngredientListViewModel = viewModel()
+    val barcodeState by viewModel.barcodeState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        Log.d("ScannedIngredientCard", "Card initialized with ingredient: $ingredient")
+        Log.d("ScannedIngredientCard", "Current barcode state: $barcodeState")
+    }
     var quantity by remember { mutableStateOf(ingredient.detectedQuantity ?: "1") }
     var unit by remember { mutableStateOf(ingredient.detectedUnit ?: "pièce") }
+    
+    DisposableEffect(ingredient) {
+        Log.d("ScannedIngredientCard", "Initial quantity: $quantity, unit: $unit")
+        onDispose {}
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -657,14 +648,27 @@ fun ScannedIngredientCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
-                    onClick = { /* Ignorer */ },
+                    onClick = { 
+                        Log.d("ScannedIngredientCard", "Ignore button clicked - resetting state")
+                        viewModel.resetState()
+                        onScanToggle()
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Ignorer",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text("Ignorer")
                 }
 
                 Button(
-                    onClick = onAddToAvailable,
+                    onClick = { 
+                        Log.d("ScannedIngredientCard", "Add button clicked with quantity: $quantity, unit: $unit")
+                        onAddToAvailable(quantity, unit)
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(

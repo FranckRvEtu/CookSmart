@@ -80,6 +80,16 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation(libs.firebase.ai)
 
+    //camera
+    // Core de CameraX
+    implementation("androidx.camera:camera-core:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+
+    //acconpanist
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
 
     // Room Database
     val room_version = "2.6.1"
