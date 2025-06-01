@@ -370,7 +370,7 @@ fun MyFavoritesSection(navController: NavController, profileViewModel: ProfileVi
 
 @Composable
 fun FavoriteRecipeItem(recipe: RecipeData, navController: NavController, profileViewModel: ProfileViewModel) {
-    var isFavorite by remember { mutableStateOf(false) }
+    var isFavorite by remember { mutableStateOf(true) }
     Card(
         modifier = Modifier
             .fillMaxWidth()

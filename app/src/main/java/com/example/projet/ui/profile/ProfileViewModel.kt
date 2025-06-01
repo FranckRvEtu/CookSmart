@@ -9,11 +9,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.projet.data.model.RecipeData
 import com.example.projet.data.model.UserData
+import com.example.projet.data.repositories.RecipeRepository
+import com.example.projet.data.repositories.RecipeRepositoryImpl
 import com.example.projet.data.repositories.UserRepository
 import com.example.projet.data.repositories.UserRepositoryImpl
 import kotlinx.coroutines.launch
 
-class ProfileViewModel(private val userRepository: UserRepository = UserRepositoryImpl()) : ViewModel() {
+class ProfileViewModel(private val userRepository: UserRepository = UserRepositoryImpl(), private val recipeRepository: RecipeRepository = RecipeRepositoryImpl()) : ViewModel() {
     var userData by mutableStateOf<UserData?>(null)
         private set
     var nbrFav by mutableIntStateOf(0)
@@ -37,10 +39,13 @@ class ProfileViewModel(private val userRepository: UserRepository = UserReposito
     fun loadData(){
         viewModelScope.launch {
             nbrFav = userRepository.getNumberOfFavoritesFromUser(userData!!.id)
-            favorites = userRepository.getRecipeFromUser(userData!!.id)
-            Log.d("LOADDATA", nbrFav.toString())
-            Log.d("LOADDATA", favorites.toString())
-            Log.d("USER", userData!!.toString())
+            val recipeRef = userRepository.getRecipeFromUser(userData!!.id)
+            val favoritesRecipe = mutableListOf<RecipeData>()
+            recipeRef.forEach{ ref ->
+                favoritesRecipe.add(recipeRepository.getRecipeById(ref.id))
+            }
+            favorites = favoritesRecipe
+            Log.d("ProfileViewModel", "Favorites : $favorites")
         }
     }
 

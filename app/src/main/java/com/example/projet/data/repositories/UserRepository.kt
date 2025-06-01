@@ -2,6 +2,7 @@ package com.example.projet.data.repositories
 
 import com.example.projet.data.model.RecipeData
 import com.example.projet.data.model.UserData
+import com.google.firebase.firestore.DocumentReference
 
 interface UserRepository {
 
@@ -21,6 +22,6 @@ interface UserRepository {
     suspend fun updateDietType(userId: String, dietType: String)
     suspend fun getIngredientsFromUser(userId: String): List<String>
     suspend fun getNumberOfFavoritesFromUser(userId: String): Int
-    suspend fun getRecipeFromUser(userId:String) : List<RecipeData>
+    suspend fun getRecipeFromUser(userId:String) : List<DocumentReference>
 
 }

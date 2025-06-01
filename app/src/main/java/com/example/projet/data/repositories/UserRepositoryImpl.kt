@@ -4,7 +4,9 @@ import android.util.Log
 import com.example.projet.data.model.RecipeData
 import com.example.projet.data.model.UserData
 import com.example.projet.data.service.FirebaseSource
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.tasks.await
 
 class UserRepositoryImpl: UserRepository {
@@ -102,14 +104,19 @@ class UserRepositoryImpl: UserRepository {
         }
     }
 
-    override suspend fun getRecipeFromUser(userId: String) : List<RecipeData>{
+    override suspend fun getRecipeFromUser(userId: String) : List<DocumentReference>{
         return try {
             val userRef = db.collection("users").document(userId)
             val snapshot = db.collection("UserFavoriteRecipe")
                 .whereEqualTo("user", userRef)
                 .get()
                 .await()
-            snapshot.toObjects(RecipeData::class.java) ?: throw Exception("Recette introuvable")
+
+            val recipeRefs: List<DocumentReference> = snapshot.documents.mapNotNull { doc ->
+                doc.get("recipe") as? DocumentReference
+            }
+
+            recipeRefs
         }catch (e:Exception){
             throw Exception("Erreur lors de la récupération des recettes : ${e.message}", e)
         }

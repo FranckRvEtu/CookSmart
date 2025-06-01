@@ -18,6 +18,6 @@ data class RecipeData(
     val allergens : List<String> = emptyList(),
     val steps : List<String> = emptyList(),
     val tags : List<String> = emptyList(),
-    val images : String = "",
+    val images : List<String> = emptyList(),
     val withOven : Boolean = false
 )
