@@ -1,9 +1,5 @@
 package com.example.projet.ui.cookingassistant
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.projet.data.repositories.RecipeRepository
@@ -35,7 +31,7 @@ class AiCookingAssistantViewModel(private val recipeRepository: RecipeRepository
                 }
 
                 val welcomeMessage = ChatMessage(
-                    content = "Hi! I'm your AI cooking assistant. I'll guide you through making ${recipe.recipeName} step by step. Let's start with step 1!",
+                    content = "Hi! I'm your AI cooking assistant. I'll guide you through making ${recipe.name} step by step. Let's start with step 1!",
                     isFromUser = false
                 )
 
@@ -90,7 +86,7 @@ class AiCookingAssistantViewModel(private val recipeRepository: RecipeRepository
         } else {
             // Recipe completed
             val completionMessage = ChatMessage(
-                content = "🎉 Congratulations! You've completed ${currentState.recipe.recipeName}. Enjoy your delicious meal!",
+                content = "🎉 Congratulations! You've completed ${currentState.recipe.name}. Enjoy your delicious meal!",
                 isFromUser = false,
                 messageType = MessageType.STEP_COMPLETION
             )

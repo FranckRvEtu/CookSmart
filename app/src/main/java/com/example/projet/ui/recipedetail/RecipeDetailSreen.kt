@@ -26,166 +26,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
-
-// Data classes
-data class Recipe(
-    val id: String,
-    val title: String,
-    val description: String,
-    val imageUrl: String,
-    val prepTime: Int, // in minutes
-    val cookTime: Int, // in minutes
-    val servings: Int,
-    val difficulty: String,
-    val ingredients: List<Ingredient>,
-    val instructions: List<String>,
-    val nutrition: NutritionInfo?,
-    val tags: List<String>
-)
-
-data class Ingredient(
-    val name: String,
-    val amount: String,
-    val unit: String
-)
-
-data class NutritionInfo(
-    val calories: Int,
-    val protein: String,
-    val carbs: String,
-    val fat: String
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeDetailScreen(
-    recipeId: Int,
-    onBackClick: () -> Unit,
-    onShareClick: () -> Unit,
-    onAiAssistantClick: (Int) -> Unit, // Pass recipe ID to AI assistant
-    modifier: Modifier = Modifier
-) {
-    var recipe by remember { mutableStateOf<Recipe?>(null) }
-
-    // TODO: Replace this with your actual data loading implementation
-// This could be from a Repository, ViewModel, or API call
-    suspend fun loadRecipeById(id: Int): Recipe {
-        // Example implementation - replace with your actual data source
-        // This could be from Room database, Retrofit API, etc.
-
-        // Simulate network delay
-        kotlinx.coroutines.delay(1000)
-
-        // Mock data - replace with your actual implementation
-        return Recipe(
-            id = id.toString(),
-            title = "Sample Recipe $id",
-            description = "A delicious sample recipe loaded by ID",
-            imageUrl = "https://example.com/recipe-$id.jpg",
-            prepTime = 15,
-            cookTime = 30,
-            servings = 4,
-            difficulty = "Medium",
-            ingredients = listOf(
-                Ingredient("Ingredient 1", "2", "cups"),
-                Ingredient("Ingredient 2", "1", "tbsp"),
-                Ingredient("Ingredient 3", "500", "g")
-            ),
-            instructions = listOf(
-                "Step 1: Prepare ingredients...",
-                "Step 2: Mix everything together...",
-                "Step 3: Cook for 30 minutes..."
-            ),
-            nutrition = NutritionInfo(
-                calories = 250,
-                protein = "15g",
-                carbs = "30g",
-                fat = "8g"
-            ),
-            tags = listOf("Easy", "Healthy", "Quick")
-        )
-    }
-    var isLoading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
+fun RecipeDetailScreen(navController: NavController ,recipeDetailsViewModel: RecipeDetailsViewModel = RecipeDetailsViewModel(), modifier: Modifier = Modifier) {
     var isFavorite by remember { mutableStateOf(false) }
-
-    // Load recipe data when recipeId changes
-    LaunchedEffect(recipeId) {
-        try {
-            isLoading = true
-            error = null
-            // TODO: Replace with your actual data source (Repository, ViewModel, etc.)
-            recipe = loadRecipeById(recipeId)
-            isLoading = false
-        } catch (e: Exception) {
-            error = e.message
-            isLoading = false
-        }
-    }
-
-    when {
-        isLoading -> {
-            Box(
-                modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-            return
-        }
-
-        error != null -> {
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Error loading recipe",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = error!!,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onBackClick) {
-                    Text("Go Back")
-                }
-            }
-            return
-        }
-
-        recipe == null -> {
-            Box(
-                modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Recipe not found")
-            }
-            return
-        }
-    }
-
-    val currentRecipe = recipe!!
 
     Column(modifier = modifier.fillMaxSize()) {
         // Top App Bar
         TopAppBar(
             title = { Text("Recipe") },
             navigationIcon = {
-                IconButton(onClick = onBackClick) {
+                IconButton(onClick = { navController.navigate("homescreen") }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
             },
             actions = {
-                IconButton(onClick = onShareClick) {
+                IconButton(onClick = { /* Not Yet Implemented */ }) {
                     Icon(Icons.Default.Share, contentDescription = "Share")
                 }
                 IconButton(onClick = { isFavorite = !isFavorite }) {
@@ -206,8 +65,8 @@ fun RecipeDetailScreen(
             // Recipe Image
             item {
                 AsyncImage(
-                    model = currentRecipe.imageUrl,
-                    contentDescription = currentRecipe.title,
+                    model = recipeDetailsViewModel.recipeData?.images?.get(0),
+                    contentDescription = recipeDetailsViewModel.recipeData?.name,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(250.dp)
@@ -220,12 +79,12 @@ fun RecipeDetailScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = currentRecipe.title,
+                        text = recipeDetailsViewModel.recipeData?.name!!,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = currentRecipe.description,
+                        text = recipeDetailsViewModel.recipeData?.type!!,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -240,23 +99,25 @@ fun RecipeDetailScreen(
                 ) {
                     RecipeInfoCard(
                         modifier = Modifier.weight(1f),
-                        title = "Prep Time",
-                        value = "${currentRecipe.prepTime} min"
+                        title = "Temps de préparation",
+                        value = "${recipeDetailsViewModel.recipeData?.prepTime} min"
                     )
                     RecipeInfoCard(
                         modifier = Modifier.weight(1f),
-                        title = "Cook Time",
-                        value = "${currentRecipe.cookTime} min"
+                        title = "Temps de cuisson",
+                        value = "${recipeDetailsViewModel.recipeData?.totalTime?.minus(
+                            recipeDetailsViewModel.recipeData!!.prepTime
+                        )} min"
                     )
                     RecipeInfoCard(
                         modifier = Modifier.weight(1f),
-                        title = "Servings",
-                        value = currentRecipe.servings.toString()
+                        title = "Pour",
+                        value = recipeDetailsViewModel.recipeData?.people.toString()
                     )
                     RecipeInfoCard(
                         modifier = Modifier.weight(1f),
                         title = "Difficulty",
-                        value = currentRecipe.difficulty
+                        value = recipeDetailsViewModel.recipeData?.difficulty.toString()
                     )
                 }
             }
@@ -264,7 +125,7 @@ fun RecipeDetailScreen(
             // AI Assistant Button
             item {
                 Button(
-                    onClick = { onAiAssistantClick(recipeId) },
+                    onClick = { navController.navigate("assistant") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary
@@ -285,7 +146,7 @@ fun RecipeDetailScreen(
             }
 
             // Tags
-            if (currentRecipe.tags.isNotEmpty()) {
+            if (recipeDetailsViewModel.recipeData?.tags!!.isNotEmpty()) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
@@ -296,7 +157,7 @@ fun RecipeDetailScreen(
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            currentRecipe.tags.take(3).forEach { tag ->
+                            recipeDetailsViewModel.recipeData?.tags!!.take(3).forEach { tag ->
                                 AssistChip(
                                     onClick = { },
                                     label = { Text(tag) }
@@ -307,12 +168,6 @@ fun RecipeDetailScreen(
                 }
             }
 
-            // Nutrition Info
-            currentRecipe.nutrition?.let { nutrition ->
-                item {
-                    NutritionCard(nutrition = nutrition)
-                }
-            }
 
             // Ingredients Section
             item {
@@ -323,7 +178,7 @@ fun RecipeDetailScreen(
                 )
             }
 
-            items(currentRecipe.ingredients) { ingredient ->
+            items(recipeDetailsViewModel.recipeData?.ingredients!!) { ingredient ->
                 IngredientItem(ingredient = ingredient)
             }
 
@@ -337,7 +192,7 @@ fun RecipeDetailScreen(
                 )
             }
 
-            itemsIndexed(currentRecipe.instructions) { index, instruction ->
+            itemsIndexed(recipeDetailsViewModel.recipeData?.steps!!) { index, instruction ->
                 InstructionItem(
                     stepNumber = index + 1,
                     instruction = instruction
@@ -386,39 +241,6 @@ private fun RecipeInfoCard(
 }
 
 @Composable
-private fun NutritionCard(
-    nutrition: NutritionInfo,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Nutrition Info",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                NutritionItem("Calories", "${nutrition.calories}")
-                NutritionItem("Protein", nutrition.protein)
-                NutritionItem("Carbs", nutrition.carbs)
-                NutritionItem("Fat", nutrition.fat)
-            }
-        }
-    }
-}
-
-@Composable
 private fun NutritionItem(
     label: String,
     value: String
@@ -439,7 +261,7 @@ private fun NutritionItem(
 
 @Composable
 private fun IngredientItem(
-    ingredient: Ingredient,
+    ingredient: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -457,15 +279,9 @@ private fun IngredientItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = ingredient.name,
+                text = ingredient,
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = "${ingredient.amount} ${ingredient.unit}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
             )
         }
     }

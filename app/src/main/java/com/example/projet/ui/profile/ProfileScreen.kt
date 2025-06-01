@@ -18,14 +18,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.projet.data.entities.User
 import com.example.projet.data.model.UserData
-import com.example.projet.data.repositories.UserRepository
-import com.example.projet.data.repositories.UserRepositoryImpl
-import com.example.projet.ui.home.HomeScreenViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.projet.data.model.RecipeData
 
 
@@ -409,7 +403,7 @@ fun FavoriteRecipeItem(recipe: RecipeData, navController: NavController, profile
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = recipe.recipeName,
+                    text = recipe.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )

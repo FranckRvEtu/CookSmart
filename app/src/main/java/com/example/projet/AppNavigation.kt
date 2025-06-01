@@ -14,6 +14,7 @@ import com.example.projet.ui.register.RegisterStep1Screen
 import com.example.projet.ui.register.RegisterStep2Screen
 import com.example.projet.ui.register.RegisterStep3Screen
 import com.example.project.ui.home.HomeScreen
+import com.example.projet.ui.cookingassistant.AiCookingAssistantScreen
 import com.example.projet.ui.home.HomeScreenViewModel
 import com.example.projet.ui.profile.ProfileScreen
 import com.example.projet.ui.ingredientlist.IngredientScannerScreen
@@ -94,11 +95,14 @@ fun AppNavigation() {
         composable("recipeDetail/{recipeId}", arguments = listOf(navArgument("recipeId") { type = NavType.IntType }))
         { backStackEntry ->
             val recipeId = backStackEntry.arguments?.getInt("recipeId") ?: -1
-            RecipeDetailScreen(
-                recipeId = recipeId,
-                onBackClick = { /* Navigate back */ },
-                onShareClick = { /* Share recipe */ },
-                onAiAssistantClick = { recipeId ->  navController.navigate("ai_assistant/$recipeId")}
+            RecipeDetailScreen(navController)
+        }
+        composable("assistant") {
+            AiCookingAssistantScreen(
+                recipeId = TODO(),
+                viewModel = TODO(),
+                onBackClick = TODO(),
+                modifier = TODO()
             )
         }
 
