@@ -1,6 +1,7 @@
 package com.example.projet.data.repositories
 
 import android.util.Log
+import com.example.projet.data.model.RecipeData
 import com.example.projet.data.model.UserData
 import com.example.projet.data.service.FirebaseSource
 import com.google.firebase.firestore.SetOptions
@@ -18,11 +19,11 @@ class UserRepositoryImpl: UserRepository {
         auth.createUserWithEmailAndPassword(userData.email, userData.password)
             .addOnSuccessListener{
                 val dataMap = hashMapOf(
-                    "firstname" to userData.firstName,
-                    "lastname" to userData.lastName,
-                    "pfp" to userData.profilePictureUrl,
-                    "regime" to userData.dietType,
-                    "allergens" to userData.allergies,
+                    "firstname" to userData.firstname,
+                    "lastname" to userData.lastname,
+                    "pfp" to userData.pfp,
+                    "regime" to userData.regime,
+                    "allergens" to userData.allergens,
                     "ingredients" to userData.ingredients,
                     "email" to userData.email
                 )
@@ -85,6 +86,24 @@ class UserRepositoryImpl: UserRepository {
             snapshot as List<String>
         }catch (e:Exception){
             throw Exception("Erreur lors de la recupération des ingrédients : ${e.message}", e)
+        }
+    }
+
+    override suspend fun getNumberOfFavoritesFromUser(userId: String): Int {
+        return try {
+            val snapshot = db.collection("UserFavoriteRecipe").whereEqualTo("userId", userId).get().await()
+            snapshot.size()
+        }catch (e:Exception){
+            throw Exception("Erreur lors de la recupération du nombre de favoris : ${e.message}", e)
+        }
+    }
+
+    override suspend fun getRecipeFromUser(userId: String) : List<RecipeData>{
+        return try {
+            val snapshot = db.collection("UserFavoriteRecipe").whereEqualTo("user",userId).get().await()
+            snapshot.toObjects(RecipeData::class.java) ?: throw Exception("Recette introuvable")
+        }catch (e:Exception){
+            throw Exception("Erreur lors de la récupération des recettes : ${e.message}", e)
         }
     }
 }

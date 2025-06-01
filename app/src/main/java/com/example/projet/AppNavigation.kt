@@ -17,6 +17,7 @@ import com.example.project.ui.home.HomeScreen
 import com.example.projet.ui.home.HomeScreenViewModel
 import com.example.projet.ui.profile.ProfileScreen
 import com.example.projet.ui.ingredientlist.IngredientScannerScreen
+import com.example.projet.ui.profile.ProfileViewModel
 import com.example.projet.ui.recipedetail.RecipeDetailScreen
 import com.example.projet.ui.search.SearchScreen
 import com.example.projet.ui.register.RegisterViewModel
@@ -44,7 +45,16 @@ fun AppNavigation() {
 
                 }
                 val homeScreenViewModel: HomeScreenViewModel = viewModel(parentEntry)
-                HomeScreen(navController, homeScreenViewModel)
+                val profileViewModel: ProfileViewModel = viewModel(parentEntry)
+                HomeScreen(navController, homeScreenViewModel, profileViewModel)
+            }
+            composable("profile") {backStackEntry ->
+                val parentEntry = remember(backStackEntry){
+                    navController.getBackStackEntry("auth")
+                }
+                val homeScreenViewModel: HomeScreenViewModel = viewModel(parentEntry)
+                val profileViewModel: ProfileViewModel = viewModel(parentEntry)
+                ProfileScreen(navController = navController, homeScreenViewModel.userData!!, profileViewModel)
             }
         }
 
@@ -77,9 +87,7 @@ fun AppNavigation() {
                 RegisterStep3Screen(navController, registerViewModel)
             }
         }
-        composable("profile") {
-            ProfileScreen(navController = navController)
-        }
+
         composable("inglist"){
             IngredientScannerScreen(navController = navController)
         }

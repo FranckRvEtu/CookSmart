@@ -1,5 +1,6 @@
 package com.example.project.ui.home
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,10 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.projet.ui.home.HomeScreenViewModel
+import com.example.projet.ui.profile.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel) {
+fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel, profileViewModel: ProfileViewModel) {
     var searchQuery by remember { mutableStateOf("") }
     
     Column(
@@ -47,7 +49,11 @@ fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel) {
                 )
             },
             actions = {
-                IconButton(onClick = { navController.navigate("profile") }) {
+                IconButton(onClick = {
+                    Log.d("HomeScreen", viewModel.userData.toString())
+                    profileViewModel.onUserChange(userData = viewModel.userData!!)
+                    navController.navigate("profile")
+                }) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Profil",
