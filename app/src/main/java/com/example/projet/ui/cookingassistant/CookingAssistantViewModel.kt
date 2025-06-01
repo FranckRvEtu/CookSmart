@@ -1,43 +1,31 @@
 package com.example.projet.ui.cookingassistant
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.projet.data.repositories.RecipeRepository
+import com.example.projet.data.repositories.RecipeRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-/*
+
 // ViewModel
-class AiCookingAssistantViewModel : ViewModel() {
+class AiCookingAssistantViewModel(private val recipeRepository: RecipeRepository = RecipeRepositoryImpl()): ViewModel() {
     private val _uiState = MutableStateFlow<AiAssistantUiState>(AiAssistantUiState.Loading)
     val uiState: StateFlow<AiAssistantUiState> = _uiState.asStateFlow()
 
-    fun initializeAssistant(recipeId: Int) {
+    fun initializeAssistant(recipeId: String) {
         viewModelScope.launch {
             try {
                 // Load recipe data
-                val recipe = loadRecipeById(recipeId)
-                val cookingSteps = recipe.instructions.mapIndexed { index, instruction ->
+                val recipe = recipeRepository.getRecipeById(recipeId)
+
+                val cookingSteps = recipe.steps.mapIndexed { index, instruction ->
                     CookingStep(
                         stepNumber = index + 1,
                         instruction = instruction,
@@ -47,7 +35,7 @@ class AiCookingAssistantViewModel : ViewModel() {
                 }
 
                 val welcomeMessage = ChatMessage(
-                    content = "Hi! I'm your AI cooking assistant. I'll guide you through making ${recipe.title} step by step. Let's start with step 1!",
+                    content = "Hi! I'm your AI cooking assistant. I'll guide you through making ${recipe.recipeName} step by step. Let's start with step 1!",
                     isFromUser = false
                 )
 
@@ -102,7 +90,7 @@ class AiCookingAssistantViewModel : ViewModel() {
         } else {
             // Recipe completed
             val completionMessage = ChatMessage(
-                content = "🎉 Congratulations! You've completed ${currentState.recipe.title}. Enjoy your delicious meal!",
+                content = "🎉 Congratulations! You've completed ${currentState.recipe.recipeName}. Enjoy your delicious meal!",
                 isFromUser = false,
                 messageType = MessageType.STEP_COMPLETION
             )
@@ -226,5 +214,3 @@ class AiCookingAssistantViewModel : ViewModel() {
         return tips
     }
 }
-
- */

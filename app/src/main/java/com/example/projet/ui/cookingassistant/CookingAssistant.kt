@@ -27,8 +27,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 //import com.example.projet.ui.cookingassistant.AiCookingAssistantViewModel
-/*
+
 // UI Screen
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiCookingAssistantScreen(
     recipeId: Int,
@@ -317,4 +318,3 @@ private fun TypingIndicator() {
     }
 }
 
- */

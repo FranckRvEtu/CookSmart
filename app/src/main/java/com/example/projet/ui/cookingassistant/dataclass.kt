@@ -1,6 +1,6 @@
 package com.example.projet.ui.cookingassistant
 
-import com.example.projet.ui.recipedetail.Recipe
+import com.example.projet.data.model.RecipeData
 
 // Data classes
 data class ChatMessage(
@@ -25,7 +25,7 @@ data class CookingStep(
 sealed class AiAssistantUiState {
     object Loading : AiAssistantUiState()
     data class Ready(
-        val recipe: Recipe,
+        val recipe: RecipeData,
         val currentStep: Int,
         val messages: List<ChatMessage>,
         val isListening: Boolean = false,
