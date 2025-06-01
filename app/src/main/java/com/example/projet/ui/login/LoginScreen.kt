@@ -21,10 +21,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.projet.ui.home.HomeScreenViewModel
 
 
 @Composable
-fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = viewModel()) {
+fun LoginScreen(navController: NavHostController, homeScreenViewModel: HomeScreenViewModel, viewModel: LoginViewModel = viewModel()) {
     var isLoading by remember { mutableStateOf(false) }
     LaunchedEffect(viewModel.isLoggedIn) {
         if (viewModel.isLoggedIn) {
@@ -139,7 +140,8 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                     }
                     //viewModel.login()
                     viewModel.login2(
-                        onSuccess = {
+                        onSuccess = {userData ->
+                            homeScreenViewModel.onUserDataChange(userData)
                             navController.navigate("homescreen") {
                                 popUpTo("login") { inclusive = true }
                             }

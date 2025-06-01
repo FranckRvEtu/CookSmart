@@ -10,4 +10,8 @@ interface UserRepository {
         onError: (String) -> Unit
     )
 
+    suspend fun getUserById(
+        userId: String
+    ): UserData?
+
 }
