@@ -77,11 +77,11 @@ class RegisterViewModel(private val userRepository: UserRepository = UserReposit
          val userData = UserData(
              email = email,
              password = password,
-             firstName = firstName,
-             lastName = lastName,
-             profilePictureUrl = "",
-             dietType = dietType,
-             allergies = selectedAllergies,
+             firstname = firstName,
+             lastname = lastName,
+             pfp = "",
+             regime = dietType,
+             allergens = selectedAllergies,
              ingredients = listOf()
          )
         viewModelScope.launch {

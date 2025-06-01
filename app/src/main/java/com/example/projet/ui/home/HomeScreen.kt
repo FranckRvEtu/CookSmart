@@ -1,5 +1,6 @@
 package com.example.project.ui.home
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,10 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.projet.ui.home.HomeScreenViewModel
+import com.example.projet.ui.profile.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel) {
+fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel, profileViewModel: ProfileViewModel) {
     var searchQuery by remember { mutableStateOf("") }
     
     Column(
@@ -47,7 +49,11 @@ fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel) {
                 )
             },
             actions = {
-                IconButton(onClick = { navController.navigate("profile") }) {
+                IconButton(onClick = {
+                    Log.d("HomeScreen", viewModel.userData.toString())
+                    profileViewModel.onUserChange(userData = viewModel.userData!!)
+                    navController.navigate("profile")
+                }) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Profil",
@@ -171,7 +177,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     recentRecipes.forEach { recipe ->
-                        RecentRecipeItem(recipe = recipe)
+                        RecentRecipeItem(recipe = recipe, navController = navController)
                     }
                 }
             }
@@ -299,11 +305,11 @@ fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
 }
 
     @Composable
-    fun RecentRecipeItem(recipe: Recipe) {
+    fun RecentRecipeItem(recipe: Recipe, navController: NavController) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { /* Navigation vers recette */ },
+                .clickable { navController.navigate("recipeDetail/${recipe.id}") },
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {

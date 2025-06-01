@@ -18,12 +18,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.projet.ui.ingredientlist.IngredientScannerScreen
+import com.example.projet.data.entities.User
+import com.example.projet.data.model.UserData
+import com.example.projet.data.repositories.UserRepository
+import com.example.projet.data.repositories.UserRepositoryImpl
+import com.example.projet.ui.home.HomeScreenViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.projet.data.model.RecipeData
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(navController: NavController, userData: UserData, profileViewModel: ProfileViewModel) {
+    profileViewModel.loadData()
     Column(
         modifier = Modifier
             .fillMaxSize() // The Column itself will fill the whole screen
@@ -69,34 +78,34 @@ fun ProfileScreen(navController: NavController) {
         ) {
             item {
                 // Profil utilisateur
-                ProfileHeader()
+                ProfileHeader(profileViewModel)
             }
 
             item {
                 // Statistiques
-                StatisticsSection()
+                StatisticsSection(profileViewModel)
             }
 
-            item {
+            /*item {
                 // Mes recettes
-                MyRecipesSection()
-            }
+                MyRecipesSection(navController, profileViewModel)
+            }*/
 
             item {
                 // Mes favoris
-                MyFavoritesSection()
+                MyFavoritesSection(navController, profileViewModel)
             }
 
             item {
                 // Options du profil
-                ProfileOptionsSection(navController)
+                ProfileOptionsSection(navController, profileViewModel)
             }
         }
     }
 }
 
 @Composable
-fun ProfileHeader() {
+fun ProfileHeader(profileViewModel: ProfileViewModel) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -129,14 +138,14 @@ fun ProfileHeader() {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Marie Dupont",
+                text =  (profileViewModel.userData?.firstname ?: "") + " " + (profileViewModel.userData?.lastname ?: ""),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
 
             Text(
-                text = "Chef amateur passionnée",
+                text = "Chef amateur.e passionné.e",
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
@@ -156,7 +165,7 @@ fun ProfileHeader() {
 }
 
 @Composable
-fun StatisticsSection() {
+fun StatisticsSection(profileViewModel: ProfileViewModel) {
     Text(
         text = "Mes statistiques",
         fontSize = 20.sp,
@@ -172,21 +181,21 @@ fun StatisticsSection() {
     ) {
         StatisticCard(
             title = "Recettes créées",
-            value = "23",
+            value = "0",
             icon = Icons.Default.MenuBook,
             modifier = Modifier.weight(1f)
         )
 
         StatisticCard(
             title = "Favoris",
-            value = "47",
+            value = profileViewModel.nbrFav.toString(),
             icon = Icons.Default.Favorite,
             modifier = Modifier.weight(1f)
         )
 
         StatisticCard(
             title = "Abonnés",
-            value = "156",
+            value = "0",
             icon = Icons.Default.People,
             modifier = Modifier.weight(1f)
         )
@@ -237,7 +246,7 @@ fun StatisticCard(
 }
 
 @Composable
-fun MyRecipesSection() {
+fun MyRecipesSection(navController: NavController, profileViewModel: ProfileViewModel) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -261,15 +270,17 @@ fun MyRecipesSection() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         myRecipes.take(3).forEach { recipe ->
-            MyRecipeItem(recipe = recipe)
+            MyRecipeItem(recipe = recipe, navController = navController, profileViewModel)
         }
     }
 }
 
 @Composable
-fun MyRecipeItem(recipe: Recipe) {
+fun MyRecipeItem(recipe: Recipe, navController: NavController, profileViewModel: ProfileViewModel) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { navController.navigate("recipeDetail/${recipe.id}") },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -334,7 +345,7 @@ fun MyRecipeItem(recipe: Recipe) {
 }
 
 @Composable
-fun MyFavoritesSection() {
+fun MyFavoritesSection(navController: NavController, profileViewModel: ProfileViewModel) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -347,9 +358,9 @@ fun MyFavoritesSection() {
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        TextButton(onClick = { /* Voir tous mes favoris */ }) {
+        /*TextButton(onClick = { /* Voir tous mes favoris */ }) {
             Text("Voir tout")
-        }
+        }*/
     }
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -357,16 +368,19 @@ fun MyFavoritesSection() {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        favoriteRecipes.take(3).forEach { recipe ->
-            FavoriteRecipeItem(recipe = recipe)
+        profileViewModel.favorites.take(3).forEach { recipe ->
+            FavoriteRecipeItem(recipe = recipe, navController = navController, profileViewModel)
         }
     }
 }
 
 @Composable
-fun FavoriteRecipeItem(recipe: Recipe) {
+fun FavoriteRecipeItem(recipe: RecipeData, navController: NavController, profileViewModel: ProfileViewModel) {
+    var isFavorite by remember { mutableStateOf(false) }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { navController.navigate("recipeDetail/${recipe.id}") },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -395,25 +409,28 @@ fun FavoriteRecipeItem(recipe: Recipe) {
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = recipe.name,
+                    text = recipe.recipeName,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Par ${recipe.author}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
-            IconButton(onClick = { /* Retirer des favoris */ }) {
+            IconButton(onClick = {
+                profileViewModel.removeFavorite(
+                    recipe.id,
+                    onSuccess = {
+                        //Icon(Icons.Default.FavoriteBorder, contentDescription = "Favori", tint = LocalContentColor.current)
+                        isFavorite = !isFavorite
+                    },
+                    onError = {
+
+                    }
+                    )
+            }) {
                 Icon(
-                    imageVector = Icons.Default.Favorite,
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = "Favori",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = if (isFavorite) MaterialTheme.colorScheme.error else LocalContentColor.current
                 )
             }
         }
@@ -421,7 +438,7 @@ fun FavoriteRecipeItem(recipe: Recipe) {
 }
 
 @Composable
-fun ProfileOptionsSection(navController: NavController) {
+fun ProfileOptionsSection(navController: NavController, profileViewModel: ProfileViewModel) {
     Text(
         text = "Options",
         fontSize = 20.sp,

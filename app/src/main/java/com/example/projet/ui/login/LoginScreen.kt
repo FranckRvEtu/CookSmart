@@ -1,5 +1,6 @@
 package com.example.projet.ui.login
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -141,6 +142,7 @@ fun LoginScreen(navController: NavHostController, homeScreenViewModel: HomeScree
                     //viewModel.login()
                     viewModel.login2(
                         onSuccess = {userData ->
+                            Log.d("LOGINSCREEN", userData.toString())
                             homeScreenViewModel.onUserDataChange(userData)
                             navController.navigate("homescreen") {
                                 popUpTo("login") { inclusive = true }

@@ -60,14 +60,18 @@ class LoginViewModel(private val userRepository : UserRepository = UserRepositor
     ){
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
             .addOnSuccessListener {
-                Log.d("LOGIN", "OK")
                 isLoggedIn = true
                 val currentUser = FirebaseSource.auth.currentUser
-                var userData : UserData? = null
-                viewModelScope.launch {
-                   userData = userRepository.getUserById(currentUser!!.uid)
+                if (currentUser != null) {
+                    Log.d("LOGIN", currentUser.uid?:"flop")
                 }
-                onSuccess(userData)
+                var userData : UserData? = null
+                val uid = currentUser!!.uid
+                viewModelScope.launch {
+                   userData = userRepository.getUserById(uid)
+                    Log.d("LOGINVIEWMODEL", userData.toString())
+                    onSuccess(userData)
+                }
             }
 
             .addOnFailureListener{
@@ -76,5 +80,6 @@ class LoginViewModel(private val userRepository : UserRepository = UserRepositor
                 onFail()
             }
     }
+    //fun login()
 }
 
