@@ -35,7 +35,13 @@ class RecipeRepositoryImpl: RecipeRepository {
         }
     }
 
-    override fun getRecipeFromUser(userId: String) {
-        TODO("Not yet implemented")
+    //TO TEST
+    override suspend fun getRecipeFromUser(userId: String) : List<RecipeData>{
+        return try {
+            val snapshot = db.collection("UserFavoriteRecipe").whereEqualTo("user",userId).get().await()
+            snapshot.toObjects(RecipeData::class.java) ?: throw Exception("Recette introuvable")
+        }catch (e:Exception){
+            throw Exception("Erreur lors de la récupération des recettes : ${e.message}", e)
+        }
     }
 }

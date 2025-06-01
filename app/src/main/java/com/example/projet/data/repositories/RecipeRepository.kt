@@ -8,5 +8,5 @@ interface RecipeRepository {
     fun addRecipe(recipe: RecipeData)
     suspend fun addRecipeToFavorites(userId: String, recipeId: String)
     suspend fun getRecipeById(recipeId: String) : RecipeData
-    fun getRecipeFromUser(userId:String)
+    suspend fun getRecipeFromUser(userId:String) : List<RecipeData>
 }
