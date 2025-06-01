@@ -79,12 +79,12 @@ fun ProfileScreen(navController: NavController) {
 
             item {
                 // Mes recettes
-                MyRecipesSection()
+                MyRecipesSection(navController)
             }
 
             item {
                 // Mes favoris
-                MyFavoritesSection()
+                MyFavoritesSection(navController)
             }
 
             item {
@@ -237,7 +237,7 @@ fun StatisticCard(
 }
 
 @Composable
-fun MyRecipesSection() {
+fun MyRecipesSection(navController: NavController) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -261,15 +261,17 @@ fun MyRecipesSection() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         myRecipes.take(3).forEach { recipe ->
-            MyRecipeItem(recipe = recipe)
+            MyRecipeItem(recipe = recipe, navController = navController)
         }
     }
 }
 
 @Composable
-fun MyRecipeItem(recipe: Recipe) {
+fun MyRecipeItem(recipe: Recipe, navController: NavController) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { navController.navigate("recipeDetail/${recipe.id}") },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -334,7 +336,7 @@ fun MyRecipeItem(recipe: Recipe) {
 }
 
 @Composable
-fun MyFavoritesSection() {
+fun MyFavoritesSection(navController: NavController) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -358,15 +360,17 @@ fun MyFavoritesSection() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         favoriteRecipes.take(3).forEach { recipe ->
-            FavoriteRecipeItem(recipe = recipe)
+            FavoriteRecipeItem(recipe = recipe, navController = navController)
         }
     }
 }
 
 @Composable
-fun FavoriteRecipeItem(recipe: Recipe) {
+fun FavoriteRecipeItem(recipe: Recipe, navController: NavController) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { navController.navigate("recipeDetail/${recipe.id}") },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {

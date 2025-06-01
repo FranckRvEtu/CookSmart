@@ -153,7 +153,7 @@ fun HomeScreen(navController: NavController) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     recentRecipes.forEach { recipe ->
-                        RecentRecipeItem(recipe = recipe)
+                        RecentRecipeItem(recipe = recipe, navController = navController)
                     }
                 }
             }
@@ -281,11 +281,11 @@ fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
 }
 
     @Composable
-    fun RecentRecipeItem(recipe: Recipe) {
+    fun RecentRecipeItem(recipe: Recipe, navController: NavController) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { /* Navigation vers recette */ },
+                .clickable { navController.navigate("recipeDetail/${recipe.id}") },
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
