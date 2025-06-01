@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.Surface
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
-import com.example.projet.theme.MonTheme
+import com.example.projet.theme.CookSmartTheme
 import com.example.projet.ui.login.LoginScreen
 
 class MainActivity : ComponentActivity(){
@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity(){
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent{
-            MonTheme {
+            CookSmartTheme {
                 Surface {
                     AppNavigation()
                 }
