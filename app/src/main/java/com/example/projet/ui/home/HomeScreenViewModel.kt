@@ -13,6 +13,5 @@ class HomeScreenViewModel : ViewModel() {
 
     fun onUserDataChange(newUserData: UserData?){
         userData = newUserData
-
     }
 }
