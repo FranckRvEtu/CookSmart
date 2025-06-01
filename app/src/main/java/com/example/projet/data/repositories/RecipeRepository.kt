@@ -1,6 +1,5 @@
 package com.example.projet.data.repositories
 
-import com.example.projet.data.entities.Recipe
 import com.example.projet.data.model.RecipeData
 
 interface RecipeRepository {

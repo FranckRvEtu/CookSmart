@@ -91,7 +91,11 @@ class UserRepositoryImpl: UserRepository {
 
     override suspend fun getNumberOfFavoritesFromUser(userId: String): Int {
         return try {
-            val snapshot = db.collection("UserFavoriteRecipe").whereEqualTo("userId", userId).get().await()
+            val userRef = db.collection("users").document(userId)
+            val snapshot = db.collection("UserFavoriteRecipe")
+                .whereEqualTo("user", userRef)
+                .get()
+                .await()
             snapshot.size()
         }catch (e:Exception){
             throw Exception("Erreur lors de la recupération du nombre de favoris : ${e.message}", e)
@@ -100,7 +104,11 @@ class UserRepositoryImpl: UserRepository {
 
     override suspend fun getRecipeFromUser(userId: String) : List<RecipeData>{
         return try {
-            val snapshot = db.collection("UserFavoriteRecipe").whereEqualTo("user",userId).get().await()
+            val userRef = db.collection("users").document(userId)
+            val snapshot = db.collection("UserFavoriteRecipe")
+                .whereEqualTo("user", userRef)
+                .get()
+                .await()
             snapshot.toObjects(RecipeData::class.java) ?: throw Exception("Recette introuvable")
         }catch (e:Exception){
             throw Exception("Erreur lors de la récupération des recettes : ${e.message}", e)

@@ -40,6 +40,7 @@ class ProfileViewModel(private val userRepository: UserRepository = UserReposito
             favorites = userRepository.getRecipeFromUser(userData!!.id)
             Log.d("LOADDATA", nbrFav.toString())
             Log.d("LOADDATA", favorites.toString())
+            Log.d("USER", userData!!.toString())
         }
     }
 
